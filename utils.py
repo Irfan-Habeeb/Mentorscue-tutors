@@ -48,7 +48,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
 
     story.append(Paragraph(f"<b>Student Name:</b> {student.name}", styles['Normal']))
     story.append(Paragraph(f"<b>Class:</b> {student.class_level}", styles['Normal']))
-    story.append(Paragraph(f"<b>Per Class Fee:</b> ₹{student.per_class_fee}", styles['Normal']))
+    story.append(Paragraph(f"<b>Per Class Fee:</b> Rs.{student.per_class_fee}", styles['Normal']))
     if student.assigned_tutor:
         story.append(Paragraph(f"<b>Assigned Tutor:</b> {student.assigned_tutor.name}", styles['Normal']))
     story.append(Spacer(1, 12))
@@ -80,9 +80,9 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
         for subject, count in subject_counts.items():
             total = count * student.per_class_fee
             total_fee += total
-            data.append([subject, str(count), f'₹{student.per_class_fee}', f'₹{total}'])
+            data.append([subject, str(count), f'Rs.{student.per_class_fee}', f'Rs.{total}'])
 
-        data.append(['', '', '<b>Total:</b>', f'<b>₹{total_fee}</b>'])
+        data.append(['', '', '<b>Total:</b>', f'<b>Rs.{total_fee}</b>'])
 
         table = Table(data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1.5*inch])
         table.setStyle(TableStyle([
@@ -140,7 +140,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
 
     story.append(Paragraph(f"<b>Tutor Name:</b> {tutor.name}", styles['Normal']))
     story.append(Paragraph(f"<b>Class Group:</b> {tutor.class_group}", styles['Normal']))
-    story.append(Paragraph(f"<b>Per Class Pay:</b> ₹{tutor.per_class_pay}", styles['Normal']))
+    story.append(Paragraph(f"<b>Per Class Pay:</b> Rs.{tutor.per_class_pay}", styles['Normal']))
     story.append(Spacer(1, 12))
 
     attendance_query = Attendance.query.filter_by(tutor_id=tutor.id)
@@ -168,10 +168,10 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
                 r.date.strftime('%Y-%m-%d'),
                 r.student.name,
                 r.subject,
-                f'₹{tutor.per_class_pay}',
+                f'Rs.{tutor.per_class_pay}',
                 r.remarks or '-'
             ])
-        data.append(['', '', '', f'<b>Total: ₹{total_salary}</b>', ''])
+        data.append(['', '', '', f'<b>Total: Rs.{total_salary}</b>', ''])
 
         table = Table(data, colWidths=[1.2*inch, 2*inch, 1.5*inch, 1.2*inch, 1.8*inch])
         table.setStyle(TableStyle([
@@ -184,7 +184,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
         story.append(table)
         story.append(Spacer(1, 20))
         story.append(Paragraph(f"<b>Total Classes Conducted:</b> {len(records)}", styles['Normal']))
-        story.append(Paragraph(f"<b>Total Salary Earned:</b> ₹{total_salary}", styles['Normal']))
+        story.append(Paragraph(f"<b>Total Salary Earned:</b> Rs.{total_salary}", styles['Normal']))
     else:
         story.append(Paragraph("No attendance records found for this tutor.", styles['Normal']))
 
