@@ -1,17 +1,55 @@
 from flask import render_template, request, redirect, url_for, flash, session, make_response
 from app import app, db
-from models import Student, Tutor, Attendance
+from models import Admin, Student, Tutor, Attendance
 from datetime import datetime, date
 from utils import generate_parent_invoice, generate_tutor_invoice
 import logging
+from functools import wraps
 
 logger = logging.getLogger(__name__)
 
+# Admin authentication decorator
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_id' not in session:
+            flash('Please log in to access the admin dashboard.', 'error')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route('/')
 def index():
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_login'))
+
+# Admin Authentication Routes
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        admin = Admin.query.filter_by(username=username).first()
+        
+        if admin and admin.check_password(password):
+            session['admin_id'] = admin.id
+            session['admin_username'] = admin.username
+            flash(f'Welcome back, {admin.username}!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid username or password.', 'error')
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin_logout')
+def admin_logout():
+    session.pop('admin_id', None)
+    session.pop('admin_username', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('admin_login'))
 
 @app.route('/admin')
+@admin_required
 def admin_dashboard():
     students = Student.query.all()
     tutors = Tutor.query.all()
@@ -28,6 +66,7 @@ def admin_dashboard():
 
 # Student Management Routes
 @app.route('/add_student', methods=['GET', 'POST'])
+@admin_required
 def add_student():
     if request.method == 'POST':
         try:
@@ -62,6 +101,7 @@ def add_student():
     return render_template('add_student.html', tutors=tutors)
 
 @app.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_student(student_id):
     student = Student.query.get_or_404(student_id)
     
@@ -90,6 +130,7 @@ def edit_student(student_id):
     return render_template('edit_student.html', student=student, tutors=tutors)
 
 @app.route('/delete_student/<int:student_id>')
+@admin_required
 def delete_student(student_id):
     try:
         student = Student.query.get_or_404(student_id)
@@ -106,6 +147,7 @@ def delete_student(student_id):
 
 # Tutor Management Routes
 @app.route('/add_tutor', methods=['GET', 'POST'])
+@admin_required
 def add_tutor():
     if request.method == 'POST':
         try:
@@ -140,6 +182,7 @@ def add_tutor():
     return render_template('add_tutor.html')
 
 @app.route('/edit_tutor/<int:tutor_id>', methods=['GET', 'POST'])
+@admin_required
 def edit_tutor(tutor_id):
     tutor = Tutor.query.get_or_404(tutor_id)
     
@@ -173,6 +216,7 @@ def edit_tutor(tutor_id):
     return render_template('edit_tutor.html', tutor=tutor)
 
 @app.route('/delete_tutor/<int:tutor_id>')
+@admin_required
 def delete_tutor(tutor_id):
     try:
         tutor = Tutor.query.get_or_404(tutor_id)
@@ -255,6 +299,7 @@ def tutor_submit():
 
 # Attendance Management Routes
 @app.route('/view_attendance')
+@admin_required
 def view_attendance():
     attendance_records = db.session.query(Attendance, Student, Tutor).join(
         Student, Attendance.student_id == Student.id
@@ -265,6 +310,7 @@ def view_attendance():
     return render_template('view_attendance.html', attendance_records=attendance_records)
 
 @app.route('/delete_attendance/<int:attendance_id>')
+@admin_required
 def delete_attendance(attendance_id):
     try:
         attendance = Attendance.query.get_or_404(attendance_id)
@@ -278,6 +324,7 @@ def delete_attendance(attendance_id):
     return redirect(url_for('view_attendance'))
 
 @app.route('/delete_all_attendance/<int:tutor_id>')
+@admin_required
 def delete_all_attendance(tutor_id):
     try:
         Attendance.query.filter_by(tutor_id=tutor_id).delete()
@@ -291,6 +338,7 @@ def delete_all_attendance(tutor_id):
 
 # PDF Invoice Routes
 @app.route('/generate_parent_invoice/<int:student_id>')
+@admin_required
 def generate_parent_invoice(student_id):
     try:
         student = Student.query.get_or_404(student_id)
@@ -307,6 +355,7 @@ def generate_parent_invoice(student_id):
         return redirect(url_for('admin_dashboard'))
 
 @app.route('/generate_tutor_invoice/<int:tutor_id>')
+@admin_required
 def generate_tutor_invoice(tutor_id):
     try:
         tutor = Tutor.query.get_or_404(tutor_id)
