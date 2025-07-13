@@ -1,0 +1,50 @@
+Create a full-stack Flask web app called "MentorsCue" — a tuition management system. This app must have two roles: Admin and Tutors.
+
+✔️ Admin Dashboard (login not required):
+- Add/Edit/Delete students (name, class, per-class fee: ₹160/180/200, assigned tutor, subjects)
+- Add/Edit/Delete tutors (name, class group, per-class pay: ₹100/120/140, username, password)
+- Passwords should be securely hashed
+- View all attendance records
+- Delete individual or all attendance records for any tutor
+- Generate downloadable PDF invoices:
+    - For parents: show subject-wise class count, total fee
+    - For tutors: show all classes taken, for whom, subjects, and total salary
+
+✔️ Tutor Login:
+- Each tutor logs in securely with username + password
+- After login, tutor is taken to `/submit`
+- Form shows:
+    - Student (dropdown of only their assigned students)
+    - Subject (dropdown or input)
+    - Auto-filled date (today)
+    - Optional remarks
+- Submitting form stores attendance data under their tutor ID
+
+✔️ Design and Styling:
+- Headings font: Cormorant Garamond
+- Body font: Figtree
+- Background: #cedce7
+- Primary color: #344e80
+- Accent color: #43a24c
+- Text color: match contrast (#2e3a4d preferred)
+- Clean layout with modern UI: cards, spacing, rounded corners
+- Responsive on mobile
+
+✔️ PDF Invoices:
+- Generate parent invoices with subject-wise breakdown and total due
+- Generate tutor invoices with class count, student names, subjects, and salary
+- Include uploaded MentorsCue logo
+- Footer: "Powered by MentorsCue — Online Tuition & Mentorship"
+
+✔️ Tech stack:
+- Flask + SQLite + Jinja2
+- HTML/CSS + Bootstrap or Tailwind
+- `werkzeug.security` for password hashing
+- Local PDF generation with `reportlab` or `WeasyPrint`
+
+✔️ Notes:
+- Store everything in one Replit project
+- Structure folders for templates, static, and database
+- All logic must run on free Replit (no external paid APIs)
+- Let me know where to upload the logo
+- Admin should be able to create tutor login credentials from the dashboard
