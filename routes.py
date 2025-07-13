@@ -1,3 +1,11 @@
+
+from datetime import datetime
+
+def safe_parse_date(date_str):
+    try:
+        return datetime.strptime(date_str, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return None
 from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from app import app, db
 from models import Admin, Student, Tutor, Attendance
@@ -378,10 +386,12 @@ def student_profile(student_id):
             Attendance.date >= start_month,
             Attendance.date < end_month
         )
-    elif start_date and end_date:
+    elif safe_parse_date(start_date) and safe_parse_date(end_date):
+        start = safe_parse_date(start_date)
+        end = safe_parse_date(end_date)
         attendance_query = attendance_query.filter(
-            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
-            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+            Attendance.date >= safe_parse_date(start_date),
+            Attendance.date <= safe_parse_date(end_date)
         )
     
     attendance_records = attendance_query.order_by(Attendance.date.desc()).all()
@@ -439,10 +449,12 @@ def tutor_profile(tutor_id):
             Attendance.date >= start_month,
             Attendance.date < end_month
         )
-    elif start_date and end_date:
+    elif safe_parse_date(start_date) and safe_parse_date(end_date):
+        start = safe_parse_date(start_date)
+        end = safe_parse_date(end_date)
         attendance_query = attendance_query.filter(
-            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
-            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+            Attendance.date >= safe_parse_date(start_date),
+            Attendance.date <= safe_parse_date(end_date)
         )
     
     attendance_records = attendance_query.order_by(Attendance.date.desc()).all()
