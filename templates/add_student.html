@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Add Student - MentorsCue{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow">
+            <div class="card-header">
+                <h3 class="mb-0">
+                    <i class="fas fa-user-plus me-2"></i>Add New Student
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">
+                            <i class="fas fa-user me-1"></i>Student Name *
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="class_level" class="form-label">
+                            <i class="fas fa-graduation-cap me-1"></i>Class *
+                        </label>
+                        <input type="text" class="form-control" id="class_level" name="class_level" placeholder="e.g., Class 10, Class 12" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="per_class_fee" class="form-label">
+                            <i class="fas fa-rupee-sign me-1"></i>Per Class Fee *
+                        </label>
+                        <select class="form-select" id="per_class_fee" name="per_class_fee" required>
+                            <option value="">Select fee amount</option>
+                            <option value="160">₹160</option>
+                            <option value="180">₹180</option>
+                            <option value="200">₹200</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="assigned_tutor_id" class="form-label">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Assigned Tutor
+                        </label>
+                        <select class="form-select" id="assigned_tutor_id" name="assigned_tutor_id">
+                            <option value="">No tutor assigned</option>
+                            {% for tutor in tutors %}
+                                <option value="{{ tutor.id }}">{{ tutor.name }} ({{ tutor.class_group }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="subjects" class="form-label">
+                            <i class="fas fa-book me-1"></i>Subjects *
+                        </label>
+                        <input type="text" class="form-control" id="subjects" name="subjects" placeholder="e.g., Mathematics, Physics, Chemistry" required>
+                        <div class="form-text">Enter subjects separated by commas</div>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary me-md-2">
+                            <i class="fas fa-arrow-left me-1"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Save Student
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
