@@ -1,12 +1,11 @@
 from io import BytesIO
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import A4
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
-from models import Attendance, Student
-from datetime import datetime
+from reportlab.lib.enums import TA_CENTER
+from models import Attendance
 import logging
 
 logger = logging.getLogger(__name__)
@@ -37,7 +36,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
     )
     
     # Title
-    story.append(Paragraph("MentorsCue", title_style))
+    story.append(Paragraph("Mentorscue", title_style))
     story.append(Paragraph("Student Invoice", header_style))
     story.append(Spacer(1, 20))
     
@@ -56,7 +55,6 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
         attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
     
     if month_filter:
-        from datetime import datetime
         year, month = month_filter.split('-')
         start_month = datetime(int(year), int(month), 1).date()
         if int(month) == 12:
@@ -68,7 +66,6 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
             Attendance.date < end_month
         )
     elif start_date and end_date:
-        from datetime import datetime
         attendance_query = attendance_query.filter(
             Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
             Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -100,7 +97,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
             ])
         
         # Add total row
-        table_data.append(['', '', '<b>Total:</b>', f'<b>₹{total_amount}</b>'])
+        table_data.append(['', '', Paragraph('Total:', bold_style), Paragraph(f'₹{total_amount}', bold_style)])
         
         # Create table
         table = Table(table_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1.5*inch])
@@ -130,9 +127,13 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
         alignment=TA_CENTER,
         textColor=colors.HexColor('#2e3a4d')
     )
-    story.append(Paragraph("Powered by MentorsCue — Online Tuition & Mentorship", footer_style))
+    story.append(Paragraph("Powered by Mentorscue — Online Tuition & Mentorship", footer_style))
     
+    try:
     doc.build(story)
+except Exception as e:
+    logger.error(f"PDF Build Error: {e}")
+    raise
     buffer.seek(0)
     return buffer
 
@@ -162,7 +163,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
     )
     
     # Title
-    story.append(Paragraph("MentorsCue", title_style))
+    story.append(Paragraph("Mentorscue", title_style))
     story.append(Paragraph("Tutor Invoice", header_style))
     story.append(Spacer(1, 20))
     
@@ -179,7 +180,6 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
         attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
     
     if month_filter:
-        from datetime import datetime
         year, month = month_filter.split('-')
         start_month = datetime(int(year), int(month), 1).date()
         if int(month) == 12:
@@ -191,7 +191,6 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
             Attendance.date < end_month
         )
     elif start_date and end_date:
-        from datetime import datetime
         attendance_query = attendance_query.filter(
             Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
             Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
@@ -215,7 +214,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
             ])
         
         # Add total row
-        table_data.append(['', '', '', f'<b>Total: ₹{total_salary}</b>', ''])
+        table_data.append(['', '', '', Paragraph(f'Total: ₹{total_salary}', bold_style), ''])
         
         # Create table
         table = Table(table_data, colWidths=[1*inch, 2*inch, 1.5*inch, 1*inch, 1.5*inch])
@@ -252,8 +251,12 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
         alignment=TA_CENTER,
         textColor=colors.HexColor('#2e3a4d')
     )
-    story.append(Paragraph("Powered by MentorsCue — Online Tuition & Mentorship", footer_style))
+    story.append(Paragraph("Powered by Mentorscue — Online Tuition & Mentorship", footer_style))
     
+    try:
     doc.build(story)
+except Exception as e:
+    logger.error(f"PDF Build Error: {e}")
+    raise
     buffer.seek(0)
     return buffer
