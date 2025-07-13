@@ -11,7 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def generate_parent_invoice(student):
+def generate_parent_invoice(student, subject_filter='', month_filter='', start_date='', end_date=''):
     """Generate PDF invoice for parents showing subject-wise breakdown"""
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -49,8 +49,32 @@ def generate_parent_invoice(student):
         story.append(Paragraph(f"<b>Assigned Tutor:</b> {student.assigned_tutor.name}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Get attendance records for this student
-    attendance_records = Attendance.query.filter_by(student_id=student.id).all()
+    # Get attendance records for this student with filters
+    attendance_query = Attendance.query.filter_by(student_id=student.id)
+    
+    if subject_filter:
+        attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
+    
+    if month_filter:
+        from datetime import datetime
+        year, month = month_filter.split('-')
+        start_month = datetime(int(year), int(month), 1).date()
+        if int(month) == 12:
+            end_month = datetime(int(year) + 1, 1, 1).date()
+        else:
+            end_month = datetime(int(year), int(month) + 1, 1).date()
+        attendance_query = attendance_query.filter(
+            Attendance.date >= start_month,
+            Attendance.date < end_month
+        )
+    elif start_date and end_date:
+        from datetime import datetime
+        attendance_query = attendance_query.filter(
+            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
+            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+        )
+    
+    attendance_records = attendance_query.all()
     
     if attendance_records:
         # Subject-wise breakdown
@@ -112,7 +136,7 @@ def generate_parent_invoice(student):
     buffer.seek(0)
     return buffer
 
-def generate_tutor_invoice(tutor):
+def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date='', end_date=''):
     """Generate PDF invoice for tutors showing class details and salary"""
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=A4)
@@ -148,8 +172,32 @@ def generate_tutor_invoice(tutor):
     story.append(Paragraph(f"<b>Per Class Pay:</b> ₹{tutor.per_class_pay}", styles['Normal']))
     story.append(Spacer(1, 20))
     
-    # Get attendance records for this tutor
-    attendance_records = Attendance.query.filter_by(tutor_id=tutor.id).all()
+    # Get attendance records for this tutor with filters
+    attendance_query = Attendance.query.filter_by(tutor_id=tutor.id)
+    
+    if subject_filter:
+        attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
+    
+    if month_filter:
+        from datetime import datetime
+        year, month = month_filter.split('-')
+        start_month = datetime(int(year), int(month), 1).date()
+        if int(month) == 12:
+            end_month = datetime(int(year) + 1, 1, 1).date()
+        else:
+            end_month = datetime(int(year), int(month) + 1, 1).date()
+        attendance_query = attendance_query.filter(
+            Attendance.date >= start_month,
+            Attendance.date < end_month
+        )
+    elif start_date and end_date:
+        from datetime import datetime
+        attendance_query = attendance_query.filter(
+            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
+            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+        )
+    
+    attendance_records = attendance_query.all()
     
     if attendance_records:
         # Create table data

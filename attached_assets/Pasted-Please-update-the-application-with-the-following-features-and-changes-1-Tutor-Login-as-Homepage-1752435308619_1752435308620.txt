@@ -1,0 +1,55 @@
+Please update the application with the following features and changes:
+
+1. ✅ Tutor Login as Homepage:
+   - Set the tutor login page (`/login`) as the default homepage (`/`).
+   - When the root URL is visited, only the tutor login should be shown.
+
+2. ✅ Hide Admin Login:
+   - Remove the admin login link from all pages, navigation menus, and templates.
+   - Make the admin login accessible only via a secret route like `/admin-login`.
+   - Do not mention or expose this link anywhere in the interface. Please provide me with the exact admin login URL.
+
+3. ✅ Student & Tutor Listing:
+   - On the admin dashboard, for both the **students** and **tutors** list:
+     - Add a **search bar** to filter by name.
+     - Add **filter options**:
+       - For tutors: by class group (KG–4, 5–10, Plus One/Two)
+       - For students: by class or assigned tutor
+     - Add **pagination**:
+       - 20 items per page
+       - Include next/previous buttons
+
+4. ✅ Detailed Profiles:
+   - On each **student profile page**:
+     - Show attendance grouped by subject
+     - Allow filtering by month or a custom date range
+   - On each **tutor profile page**:
+     - Show all classes they have taken
+     - Include student name, subject, and date
+     - Add filter options by subject and date range
+
+5. ✅ Subject-Linked Attendance:
+   - When a tutor submits attendance:
+     - Only show the subjects assigned to the selected student (as saved during student admission).
+     - Dynamically load these subjects in the form based on the student selected.
+
+6. ✅ Invoice Generation (Based on Filters):
+   - On both **student** and **tutor profile pages**, include a **“Generate Invoice”** button.
+   - This should generate a downloadable PDF invoice based **only on the current filtered results** (month or custom date range).
+   - For students: include subject-wise class counts and total amount due.
+   - For tutors: include class counts and payment details as per pricing rules.
+
+7. ✅ Styling:
+   - Headings Font: **Cormorant Garamond**
+   - Body Font: **Figtree**
+   - Background color: `#cedce7`
+   - Primary theme color: `#344e80`
+   - Accent color: `#43a24c`
+   - Use suitable contrasting text colors for readability.
+
+8. ✅ Invoice Errors:
+   - Make sure PDF invoice generation works correctly (test outside Replit preview).
+   - Ensure paths to logos, fonts, and any static files used in invoices are correct and compatible with production (Render).
+   - Add basic error handling if PDF generation fails.
+
+Please ensure everything is tested and ready for deployment to Render. Keep the system mobile-friendly and clean.

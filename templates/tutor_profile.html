@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}{{ tutor.name }} - Tutor Profile{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Tutor Information Card -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>{{ tutor.name }}
+                    </h3>
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                    </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Class Group:</strong> {{ tutor.class_group }}</p>
+                            <p><strong>Pay per Class:</strong> ₹{{ tutor.per_class_pay }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Username:</strong> {{ tutor.username }}</p>
+                            <p><strong>Students Assigned:</strong> {{ tutor.students|length }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Assigned Students -->
+                    {% if tutor.students %}
+                        <h6 class="mt-3 mb-2">Assigned Students:</h6>
+                        <div class="row">
+                            {% for student in tutor.students %}
+                                <div class="col-md-4 mb-2">
+                                    <a href="{{ url_for('student_profile', student_id=student.id) }}" class="btn btn-outline-primary btn-sm">
+                                        {{ student.name }} ({{ student.class_level }})
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter and Generate Invoice Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>Filter Class Records
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" class="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="subject_filter" class="form-label">Subject</label>
+                                <select class="form-select" id="subject_filter" name="subject_filter">
+                                    <option value="">All Subjects</option>
+                                    {% for subject in available_subjects %}
+                                        <option value="{{ subject }}" {{ 'selected' if subject_filter == subject }}>{{ subject }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label for="month_filter" class="form-label">Month</label>
+                                <input type="month" class="form-control" id="month_filter" name="month_filter" value="{{ month_filter }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary d-block">
+                                    <i class="fas fa-filter me-1"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Generate Invoice Button -->
+                    {% if attendance_records %}
+                        <div class="d-flex justify-content-end">
+                            <a href="{{ url_for('generate_tutor_invoice', tutor_id=tutor.id, subject_filter=subject_filter, month_filter=month_filter, start_date=start_date, end_date=end_date) }}" 
+                               class="btn btn-success">
+                                <i class="fas fa-file-pdf me-1"></i>Generate Filtered Invoice
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Class Records -->
+    {% if attendance_records %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar-check me-2"></i>Class Records
+                            <span class="badge bg-primary ms-2">{{ attendance_records|length }} classes</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Student</th>
+                                        <th>Subject</th>
+                                        <th>Class Fee</th>
+                                        <th>Pay</th>
+                                        <th>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for attendance, student in attendance_records %}
+                                        <tr>
+                                            <td>{{ attendance.date.strftime('%d %b %Y') }}</td>
+                                            <td>
+                                                <a href="{{ url_for('student_profile', student_id=student.id) }}" class="text-decoration-none">
+                                                    {{ student.name }}
+                                                </a>
+                                            </td>
+                                            <td>{{ attendance.subject }}</td>
+                                            <td>₹{{ student.per_class_fee }}</td>
+                                            <td>₹{{ tutor.per_class_pay }}</td>
+                                            <td>{{ attendance.remarks or '-' }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                                <tfoot>
+                                    <tr class="table-success">
+                                        <th>Total Classes: {{ attendance_records|length }}</th>
+                                        <th></th>
+                                        <th></th>
+                                        <th></th>
+                                        <th><strong>Total Pay: ₹{{ attendance_records|length * tutor.per_class_pay }}</strong></th>
+                                        <th></th>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <!-- Summary by Subject -->
+                        {% set subject_summary = {} %}
+                        {% for attendance, student in attendance_records %}
+                            {% if subject_summary.update({attendance.subject: (subject_summary.get(attendance.subject, 0) + 1)}) %}{% endif %}
+                        {% endfor %}
+                        
+                        {% if subject_summary|length > 1 %}
+                            <div class="mt-4">
+                                <h6>Summary by Subject:</h6>
+                                <div class="row">
+                                    {% for subject, count in subject_summary.items() %}
+                                        <div class="col-md-3 mb-2">
+                                            <div class="card text-center">
+                                                <div class="card-body py-2">
+                                                    <h6 class="card-title mb-1">{{ subject }}</h6>
+                                                    <p class="card-text">
+                                                        <small class="text-muted">{{ count }} classes</small><br>
+                                                        <strong>₹{{ count * tutor.per_class_pay }}</strong>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No class records found</h5>
+                    <p class="text-muted">
+                        {% if subject_filter or month_filter or start_date %}
+                            Try adjusting your filters to see more records.
+                        {% else %}
+                            No classes have been recorded for this tutor yet.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Clear date range when month is selected and vice versa
+document.getElementById('month_filter').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('start_date').value = '';
+        document.getElementById('end_date').value = '';
+    }
+});
+
+document.getElementById('start_date').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('month_filter').value = '';
+    }
+});
+
+document.getElementById('end_date').addEventListener('change', function() {
+    if (this.value) {
+        document.getElementById('month_filter').value = '';
+    }
+});
+</script>
+{% endblock %}

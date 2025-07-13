@@ -31,8 +31,10 @@
                             <label for="subject" class="form-label">
                                 <i class="fas fa-book me-1"></i>Subject *
                             </label>
-                            <input type="text" class="form-control" id="subject" name="subject" placeholder="e.g., Mathematics, Physics" required>
-                            <div class="form-text">Enter the subject you taught in this class</div>
+                            <select class="form-select" id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                            </select>
+                            <div class="form-text">Select the subject you taught in this class</div>
                         </div>
 
                         <div class="mb-3">
@@ -91,4 +93,42 @@
         </div>
     </div>
 </div>
+
+<script>
+// Load subjects when student is selected
+document.getElementById('student_id').addEventListener('change', function() {
+    const studentId = this.value;
+    const subjectSelect = document.getElementById('subject');
+    
+    // Clear existing options
+    subjectSelect.innerHTML = '<option value="">Select a subject</option>';
+    
+    if (studentId) {
+        fetch(`/get_student_subjects/${studentId}`)
+            .then(response => response.json())
+            .then(data => {
+                data.subjects.forEach(subject => {
+                    const option = document.createElement('option');
+                    option.value = subject;
+                    option.textContent = subject;
+                    subjectSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading subjects:', error);
+                // Fallback to manual input
+                subjectSelect.innerHTML = '<option value="">Error loading subjects - type manually</option>';
+                subjectSelect.setAttribute('data-original-type', 'select');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control';
+                input.id = 'subject';
+                input.name = 'subject';
+                input.placeholder = 'Enter subject manually';
+                input.required = true;
+                subjectSelect.parentNode.replaceChild(input, subjectSelect);
+            });
+    }
+});
+</script>
 {% endblock %}

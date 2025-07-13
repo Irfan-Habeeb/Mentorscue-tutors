@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for, flash, session, make_response
+from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from app import app, db
 from models import Admin, Student, Tutor, Attendance
 from datetime import datetime, date
@@ -20,10 +20,10 @@ def admin_required(f):
 
 @app.route('/')
 def index():
-    return redirect(url_for('admin_login'))
+    return redirect(url_for('tutor_login'))
 
-# Admin Authentication Routes
-@app.route('/admin_login', methods=['GET', 'POST'])
+# Admin Authentication Routes (Secret URL)
+@app.route('/admin-login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         username = request.form['username']
@@ -51,18 +51,61 @@ def admin_logout():
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
-    students = Student.query.all()
-    tutors = Tutor.query.all()
-    total_students = len(students)
-    total_tutors = len(tutors)
+    # Search and filter parameters
+    student_search = request.args.get('student_search', '')
+    tutor_search = request.args.get('tutor_search', '')
+    student_class_filter = request.args.get('student_class_filter', '')
+    student_tutor_filter = request.args.get('student_tutor_filter', '')
+    tutor_class_filter = request.args.get('tutor_class_filter', '')
+    
+    # Pagination parameters
+    student_page = request.args.get('student_page', 1, type=int)
+    tutor_page = request.args.get('tutor_page', 1, type=int)
+    per_page = 20
+    
+    # Build student query
+    student_query = Student.query
+    if student_search:
+        student_query = student_query.filter(Student.name.contains(student_search))
+    if student_class_filter:
+        student_query = student_query.filter(Student.class_level == student_class_filter)
+    if student_tutor_filter:
+        student_query = student_query.filter(Student.assigned_tutor_id == student_tutor_filter)
+    
+    # Build tutor query
+    tutor_query = Tutor.query
+    if tutor_search:
+        tutor_query = tutor_query.filter(Tutor.name.contains(tutor_search))
+    if tutor_class_filter:
+        tutor_query = tutor_query.filter(Tutor.class_group == tutor_class_filter)
+    
+    # Get paginated results
+    students = student_query.paginate(page=student_page, per_page=per_page, error_out=False)
+    tutors = tutor_query.paginate(page=tutor_page, per_page=per_page, error_out=False)
+    
+    # Get filter options
+    all_tutors = Tutor.query.all()
+    student_classes = db.session.query(Student.class_level).distinct().all()
+    tutor_classes = db.session.query(Tutor.class_group).distinct().all()
+    
+    total_students = Student.query.count()
+    total_tutors = Tutor.query.count()
     total_attendance = Attendance.query.count()
     
     return render_template('admin_dashboard.html', 
                          students=students, 
                          tutors=tutors,
+                         all_tutors=all_tutors,
+                         student_classes=[c[0] for c in student_classes],
+                         tutor_classes=[c[0] for c in tutor_classes],
                          total_students=total_students,
                          total_tutors=total_tutors,
-                         total_attendance=total_attendance)
+                         total_attendance=total_attendance,
+                         student_search=student_search,
+                         tutor_search=tutor_search,
+                         student_class_filter=student_class_filter,
+                         student_tutor_filter=student_tutor_filter,
+                         tutor_class_filter=tutor_class_filter)
 
 # Student Management Routes
 @app.route('/add_student', methods=['GET', 'POST'])
@@ -234,6 +277,7 @@ def delete_tutor(tutor_id):
     return redirect(url_for('admin_dashboard'))
 
 # Tutor Login and Attendance Routes
+@app.route('/login', methods=['GET', 'POST'])
 @app.route('/tutor_login', methods=['GET', 'POST'])
 def tutor_login():
     if request.method == 'POST':
@@ -297,6 +341,125 @@ def tutor_submit():
                          students=assigned_students,
                          today=date.today().strftime('%Y-%m-%d'))
 
+# AJAX route to get student subjects
+@app.route('/get_student_subjects/<int:student_id>')
+def get_student_subjects(student_id):
+    student = Student.query.get_or_404(student_id)
+    subjects = student.get_subjects_list()
+    return jsonify({'subjects': subjects})
+
+# Student Profile Route
+@app.route('/student_profile/<int:student_id>')
+@admin_required
+def student_profile(student_id):
+    student = Student.query.get_or_404(student_id)
+    
+    # Filter parameters
+    subject_filter = request.args.get('subject_filter', '')
+    month_filter = request.args.get('month_filter', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Build attendance query
+    attendance_query = Attendance.query.filter_by(student_id=student_id)
+    
+    if subject_filter:
+        attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
+    
+    if month_filter:
+        year, month = month_filter.split('-')
+        from datetime import datetime
+        start_month = datetime(int(year), int(month), 1).date()
+        if int(month) == 12:
+            end_month = datetime(int(year) + 1, 1, 1).date()
+        else:
+            end_month = datetime(int(year), int(month) + 1, 1).date()
+        attendance_query = attendance_query.filter(
+            Attendance.date >= start_month,
+            Attendance.date < end_month
+        )
+    elif start_date and end_date:
+        attendance_query = attendance_query.filter(
+            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
+            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+        )
+    
+    attendance_records = attendance_query.order_by(Attendance.date.desc()).all()
+    
+    # Group by subject
+    subject_attendance = {}
+    for record in attendance_records:
+        if record.subject not in subject_attendance:
+            subject_attendance[record.subject] = []
+        subject_attendance[record.subject].append(record)
+    
+    # Get available subjects and months for filters
+    all_subjects = db.session.query(Attendance.subject).filter_by(student_id=student_id).distinct().all()
+    available_subjects = [s[0] for s in all_subjects]
+    
+    return render_template('student_profile.html',
+                         student=student,
+                         subject_attendance=subject_attendance,
+                         attendance_records=attendance_records,
+                         available_subjects=available_subjects,
+                         subject_filter=subject_filter,
+                         month_filter=month_filter,
+                         start_date=start_date,
+                         end_date=end_date)
+
+# Tutor Profile Route
+@app.route('/tutor_profile/<int:tutor_id>')
+@admin_required
+def tutor_profile(tutor_id):
+    tutor = Tutor.query.get_or_404(tutor_id)
+    
+    # Filter parameters
+    subject_filter = request.args.get('subject_filter', '')
+    month_filter = request.args.get('month_filter', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    # Build attendance query
+    attendance_query = db.session.query(Attendance, Student).join(
+        Student, Attendance.student_id == Student.id
+    ).filter(Attendance.tutor_id == tutor_id)
+    
+    if subject_filter:
+        attendance_query = attendance_query.filter(Attendance.subject == subject_filter)
+    
+    if month_filter:
+        year, month = month_filter.split('-')
+        from datetime import datetime
+        start_month = datetime(int(year), int(month), 1).date()
+        if int(month) == 12:
+            end_month = datetime(int(year) + 1, 1, 1).date()
+        else:
+            end_month = datetime(int(year), int(month) + 1, 1).date()
+        attendance_query = attendance_query.filter(
+            Attendance.date >= start_month,
+            Attendance.date < end_month
+        )
+    elif start_date and end_date:
+        attendance_query = attendance_query.filter(
+            Attendance.date >= datetime.strptime(start_date, '%Y-%m-%d').date(),
+            Attendance.date <= datetime.strptime(end_date, '%Y-%m-%d').date()
+        )
+    
+    attendance_records = attendance_query.order_by(Attendance.date.desc()).all()
+    
+    # Get available subjects for filters
+    all_subjects = db.session.query(Attendance.subject).filter_by(tutor_id=tutor_id).distinct().all()
+    available_subjects = [s[0] for s in all_subjects]
+    
+    return render_template('tutor_profile.html',
+                         tutor=tutor,
+                         attendance_records=attendance_records,
+                         available_subjects=available_subjects,
+                         subject_filter=subject_filter,
+                         month_filter=month_filter,
+                         start_date=start_date,
+                         end_date=end_date)
+
 # Attendance Management Routes
 @app.route('/view_attendance')
 @admin_required
@@ -342,11 +505,26 @@ def delete_all_attendance(tutor_id):
 def generate_parent_invoice(student_id):
     try:
         student = Student.query.get_or_404(student_id)
-        pdf_buffer = generate_parent_invoice(student)
+        
+        # Get filter parameters for filtered invoice
+        subject_filter = request.args.get('subject_filter', '')
+        month_filter = request.args.get('month_filter', '')
+        start_date = request.args.get('start_date', '')
+        end_date = request.args.get('end_date', '')
+        
+        pdf_buffer = generate_parent_invoice(student, subject_filter, month_filter, start_date, end_date)
         
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=parent_invoice_{student.name.replace(" ", "_")}.pdf'
+        
+        # Add filter info to filename
+        filename_suffix = ""
+        if month_filter:
+            filename_suffix = f"_{month_filter}"
+        elif start_date and end_date:
+            filename_suffix = f"_{start_date}_to_{end_date}"
+        
+        response.headers['Content-Disposition'] = f'attachment; filename=parent_invoice_{student.name.replace(" ", "_")}{filename_suffix}.pdf'
         
         return response
     except Exception as e:
@@ -359,11 +537,26 @@ def generate_parent_invoice(student_id):
 def generate_tutor_invoice(tutor_id):
     try:
         tutor = Tutor.query.get_or_404(tutor_id)
-        pdf_buffer = generate_tutor_invoice(tutor)
+        
+        # Get filter parameters for filtered invoice
+        subject_filter = request.args.get('subject_filter', '')
+        month_filter = request.args.get('month_filter', '')
+        start_date = request.args.get('start_date', '')
+        end_date = request.args.get('end_date', '')
+        
+        pdf_buffer = generate_tutor_invoice(tutor, subject_filter, month_filter, start_date, end_date)
         
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename=tutor_invoice_{tutor.name.replace(" ", "_")}.pdf'
+        
+        # Add filter info to filename
+        filename_suffix = ""
+        if month_filter:
+            filename_suffix = f"_{month_filter}"
+        elif start_date and end_date:
+            filename_suffix = f"_{start_date}_to_{end_date}"
+        
+        response.headers['Content-Disposition'] = f'attachment; filename=tutor_invoice_{tutor.name.replace(" ", "_")}{filename_suffix}.pdf'
         
         return response
     except Exception as e:
