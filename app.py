@@ -48,6 +48,10 @@ with app.app_context():
 # Import routes
 import routes
 
+@app.route("/robots.txt")
+def robots_txt():
+    return app.send_static_file("robots.txt")
+
 # Production-ready: Remove debug mode and app.run() for deployment
 # if __name__ == '__main__':
 #     app.run(host='0.0.0.0', port=5000, debug=False)
