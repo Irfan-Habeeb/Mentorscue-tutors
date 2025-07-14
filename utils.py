@@ -82,7 +82,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
             total_fee += total
             data.append([subject, str(count), f'Rs.{student.per_class_fee}', f'Rs.{total}'])
 
-        data.append(['', '', '<b>Total:</b>', f'<b>Rs.{total_fee}</b>'])
+        data.append(['', '', 'TOTAL:', f'Rs.{total_fee}'])
 
         table = Table(data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1.5*inch])
         table.setStyle(TableStyle([
