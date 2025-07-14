@@ -42,7 +42,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
     )
 
     # Header
-    story.append(Paragraph("Mentorscue", title_style))
+    story.append(Paragraph("MENTORSCUE", title_style))
     story.append(Paragraph("Student Invoice", subtitle_style))
     story.append(Spacer(1, 12))
 
