@@ -98,7 +98,7 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
         story.append(Paragraph("No attendance records found for this student.", styles['Normal']))
 
     story.append(Spacer(1, 20))
-    story.append(Paragraph("Powered by Mentorscue — Online Tuition & Mentorship", footer_style))
+    story.append(Paragraph("Powered by Mentorscue Online Tuition", footer_style))
     doc.build(story)
     buffer.seek(0)
     return buffer
@@ -171,7 +171,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
                 f'Rs.{tutor.per_class_pay}',
                 r.remarks or '-'
             ])
-        data.append(['', '', '', f'<b>Total: Rs.{total_salary}</b>', ''])
+        data.append(['', '', '', f'TOTAL: Rs.{total_salary}', ''])
 
         table = Table(data, colWidths=[1.2*inch, 2*inch, 1.5*inch, 1.2*inch, 1.8*inch])
         table.setStyle(TableStyle([
