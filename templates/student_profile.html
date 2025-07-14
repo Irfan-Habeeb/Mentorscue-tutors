@@ -83,7 +83,7 @@
                     <!-- Generate Invoice Button -->
                     {% if attendance_records %}
                         <div class="d-flex justify-content-end">
-                            <a href="{{ url_for('generate_parent_invoice', student_id=student.id, subject_filter=subject_filter, month_filter=month_filter, start_date=start_date, end_date=end_date) }}" 
+                            <a href="{{ url_for('handle_generate_parent_invoice', student_id=student.id, subject_filter=subject_filter, month_filter=month_filter, start_date=start_date, end_date=end_date) }}" 
                                class="btn btn-success">
                                 <i class="fas fa-file-pdf me-1"></i>Generate Filtered Invoice
                             </a>

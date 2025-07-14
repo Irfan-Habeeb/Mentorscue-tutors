@@ -9,7 +9,7 @@ def safe_parse_date(date_str):
 from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from app import app, db
 from models import Admin, Student, Tutor, Attendance
-from datetime import datetime, date
+from datetime import date
 from utils import generate_parent_invoice, generate_tutor_invoice
 import logging
 from functools import wraps
@@ -514,7 +514,7 @@ def delete_all_attendance(tutor_id):
 # PDF Invoice Routes
 @app.route('/generate_parent_invoice/<int:student_id>')
 @admin_required
-def generate_parent_invoice(student_id):
+def handle_generate_parent_invoice(student_id):
     try:
         student = Student.query.get_or_404(student_id)
         
@@ -546,7 +546,7 @@ def generate_parent_invoice(student_id):
 
 @app.route('/generate_tutor_invoice/<int:tutor_id>')
 @admin_required
-def generate_tutor_invoice(tutor_id):
+def handle_generate_tutor_invoice(tutor_id):
     try:
         tutor = Tutor.query.get_or_404(tutor_id)
         
