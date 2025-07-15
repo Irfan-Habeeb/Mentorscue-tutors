@@ -1,8 +1,8 @@
-modules = ["python-3.11", "postgresql-16"]
+modules = ["web", "python-3.11", "nodejs-20"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["freetype", "glibcLocales", "openssl", "postgresql", "lsof"]
+packages = ["freetype", "glibcLocales", "lsof", "openssl", "postgresql"]
 
 [deployment]
 deploymentTarget = "autoscale"
