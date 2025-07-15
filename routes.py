@@ -8,7 +8,7 @@ def safe_parse_date(date_str):
         return None
 from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from app import app, db
-from models import Admin, Student, Tutor, Attendance
+from models import Admin, Student, Tutor, Attendance, StudentTutorLink
 from datetime import date
 from utils import generate_parent_invoice, generate_tutor_invoice
 import logging
@@ -59,16 +59,106 @@ def admin_logout():
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
+    from datetime import datetime, timedelta
+    from sqlalchemy import func, extract
+    
+    # Get filter parameters
+    filter_period = request.args.get('filter_period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Set date range based on filter
+    today = datetime.now().date()
+    if filter_period == 'week':
+        start_date = today - timedelta(days=7)
+        end_date = today
+    elif filter_period == 'month':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif filter_period == 'year':
+        start_date = today.replace(month=1, day=1)
+        end_date = today
+    elif filter_period == 'custom' and start_date and end_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        start_date = today - timedelta(days=7)
+        end_date = today
+    
+    # Basic statistics
+    total_students = Student.query.count()
+    total_tutors = Tutor.query.count()
+    total_attendance = Attendance.query.count()
+    
+    # Financial calculations
+    total_revenue = db.session.query(
+        func.sum(Student.per_class_fee * 
+                func.count(Attendance.id))
+    ).select_from(Student).join(Attendance).filter(
+        Attendance.date.between(start_date, end_date)
+    ).scalar() or 0
+    
+    total_payout = db.session.query(
+        func.sum(StudentTutorLink.pay_per_class)
+    ).select_from(StudentTutorLink).join(Attendance, 
+        (StudentTutorLink.student_id == Attendance.student_id) & 
+        (StudentTutorLink.tutor_id == Attendance.tutor_id)
+    ).filter(
+        Attendance.date.between(start_date, end_date)
+    ).scalar() or 0
+    
+    net_balance = total_revenue - total_payout
+    
+    # Top 10 students by class count (leaderboard)
+    top_students = db.session.query(
+        Student.name,
+        func.count(Attendance.id).label('class_count')
+    ).join(Attendance).filter(
+        Attendance.date.between(start_date, end_date)
+    ).group_by(Student.id, Student.name).order_by(
+        func.count(Attendance.id).desc()
+    ).limit(10).all()
+    
+    # Monthly earnings data for chart
+    monthly_earnings = db.session.query(
+        extract('month', Attendance.date).label('month'),
+        extract('year', Attendance.date).label('year'),
+        func.sum(Student.per_class_fee).label('revenue'),
+        func.sum(StudentTutorLink.pay_per_class).label('payout')
+    ).select_from(Attendance).join(Student).join(StudentTutorLink, 
+        (StudentTutorLink.student_id == Attendance.student_id) & 
+        (StudentTutorLink.tutor_id == Attendance.tutor_id)
+    ).filter(
+        Attendance.date >= (today - timedelta(days=365))
+    ).group_by(
+        extract('month', Attendance.date),
+        extract('year', Attendance.date)
+    ).order_by('year', 'month').all()
+    
+    return render_template('admin_dashboard.html', 
+                         total_students=total_students,
+                         total_tutors=total_tutors,
+                         total_attendance=total_attendance,
+                         total_revenue=total_revenue,
+                         total_payout=total_payout,
+                         net_balance=net_balance,
+                         top_students=top_students,
+                         monthly_earnings=monthly_earnings,
+                         filter_period=filter_period,
+                         start_date=start_date,
+                         end_date=end_date)
+
+# Separate student and tutor views
+@app.route('/admin/students')
+@admin_required
+def admin_students():
     # Search and filter parameters
     student_search = request.args.get('student_search', '')
-    tutor_search = request.args.get('tutor_search', '')
     student_class_filter = request.args.get('student_class_filter', '')
     student_tutor_filter = request.args.get('student_tutor_filter', '')
-    tutor_class_filter = request.args.get('tutor_class_filter', '')
     
     # Pagination parameters
     student_page = request.args.get('student_page', 1, type=int)
-    tutor_page = request.args.get('tutor_page', 1, type=int)
     per_page = 20
     
     # Build student query
@@ -77,8 +167,32 @@ def admin_dashboard():
         student_query = student_query.filter(Student.name.contains(student_search))
     if student_class_filter:
         student_query = student_query.filter(Student.class_level == student_class_filter)
-    if student_tutor_filter:
-        student_query = student_query.filter(Student.assigned_tutor_id == student_tutor_filter)
+    
+    # Get paginated results
+    students = student_query.paginate(page=student_page, per_page=per_page, error_out=False)
+    
+    # Get filter options
+    all_tutors = Tutor.query.all()
+    student_classes = db.session.query(Student.class_level).distinct().all()
+    
+    return render_template('admin_students.html', 
+                         students=students, 
+                         all_tutors=all_tutors,
+                         student_classes=[c[0] for c in student_classes],
+                         student_search=student_search,
+                         student_class_filter=student_class_filter,
+                         student_tutor_filter=student_tutor_filter)
+
+@app.route('/admin/tutors')
+@admin_required
+def admin_tutors():
+    # Search and filter parameters
+    tutor_search = request.args.get('tutor_search', '')
+    tutor_class_filter = request.args.get('tutor_class_filter', '')
+    
+    # Pagination parameters
+    tutor_page = request.args.get('tutor_page', 1, type=int)
+    per_page = 20
     
     # Build tutor query
     tutor_query = Tutor.query
@@ -88,32 +202,54 @@ def admin_dashboard():
         tutor_query = tutor_query.filter(Tutor.class_group == tutor_class_filter)
     
     # Get paginated results
-    students = student_query.paginate(page=student_page, per_page=per_page, error_out=False)
     tutors = tutor_query.paginate(page=tutor_page, per_page=per_page, error_out=False)
     
     # Get filter options
-    all_tutors = Tutor.query.all()
-    student_classes = db.session.query(Student.class_level).distinct().all()
     tutor_classes = db.session.query(Tutor.class_group).distinct().all()
     
-    total_students = Student.query.count()
-    total_tutors = Tutor.query.count()
-    total_attendance = Attendance.query.count()
-    
-    return render_template('admin_dashboard.html', 
-                         students=students, 
+    return render_template('admin_tutors.html', 
                          tutors=tutors,
-                         all_tutors=all_tutors,
-                         student_classes=[c[0] for c in student_classes],
                          tutor_classes=[c[0] for c in tutor_classes],
-                         total_students=total_students,
-                         total_tutors=total_tutors,
-                         total_attendance=total_attendance,
-                         student_search=student_search,
                          tutor_search=tutor_search,
-                         student_class_filter=student_class_filter,
-                         student_tutor_filter=student_tutor_filter,
                          tutor_class_filter=tutor_class_filter)
+
+# Payment tracking routes
+@app.route('/admin/payments')
+@admin_required
+def admin_payments():
+    tab = request.args.get('tab', 'students')
+    
+    if tab == 'students':
+        students = Student.query.all()
+        return render_template('admin_payments.html', students=students, tab=tab)
+    else:
+        tutors = Tutor.query.all()
+        return render_template('admin_payments.html', tutors=tutors, tab=tab)
+
+@app.route('/admin/update_payment_status', methods=['POST'])
+@admin_required
+def update_payment_status():
+    entity_type = request.form['entity_type']
+    entity_id = request.form['entity_id']
+    status = request.form['status']
+    payment_date = request.form.get('payment_date')
+    
+    if entity_type == 'student':
+        student = Student.query.get_or_404(entity_id)
+        student.payment_status = status
+        if payment_date:
+            student.last_payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
+        db.session.commit()
+        flash('Student payment status updated successfully!', 'success')
+    else:
+        tutor = Tutor.query.get_or_404(entity_id)
+        tutor.payment_status = status
+        if payment_date:
+            tutor.last_payment_date = datetime.strptime(payment_date, '%Y-%m-%d').date()
+        db.session.commit()
+        flash('Tutor payment status updated successfully!', 'success')
+    
+    return redirect(url_for('admin_payments', tab=entity_type + 's'))
 
 # Student Management Routes
 @app.route('/add_student', methods=['GET', 'POST'])
@@ -122,28 +258,42 @@ def add_student():
     if request.method == 'POST':
         try:
             name = request.form['name']
+            parent_name = request.form['parent_name']
             class_level = request.form['class_level']
             per_class_fee = int(request.form['per_class_fee'])
-            assigned_tutor_id = request.form.get('assigned_tutor_id')
             subjects = request.form['subjects']
             
-            if assigned_tutor_id == '':
-                assigned_tutor_id = None
-            else:
-                assigned_tutor_id = int(assigned_tutor_id)
+            # Get selected tutors and their pay rates
+            selected_tutors = request.form.getlist('selected_tutors')
+            tutor_pay_rates = {}
+            for tutor_id in selected_tutors:
+                pay_rate = request.form.get(f'pay_rate_{tutor_id}')
+                if pay_rate:
+                    tutor_pay_rates[int(tutor_id)] = int(pay_rate)
             
             student = Student(
                 name=name,
+                parent_name=parent_name,
                 class_level=class_level,
                 per_class_fee=per_class_fee,
-                assigned_tutor_id=assigned_tutor_id,
                 subjects=subjects
             )
             
             db.session.add(student)
+            db.session.flush()  # To get student ID
+            
+            # Create tutor links
+            for tutor_id, pay_rate in tutor_pay_rates.items():
+                link = StudentTutorLink(
+                    student_id=student.id,
+                    tutor_id=tutor_id,
+                    pay_per_class=pay_rate
+                )
+                db.session.add(link)
+            
             db.session.commit()
             flash('Student added successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_students'))
         except Exception as e:
             logger.error(f"Error adding student: {e}")
             flash('Error adding student. Please try again.', 'error')
@@ -159,26 +309,42 @@ def edit_student(student_id):
     if request.method == 'POST':
         try:
             student.name = request.form['name']
+            student.parent_name = request.form['parent_name']
             student.class_level = request.form['class_level']
             student.per_class_fee = int(request.form['per_class_fee'])
-            assigned_tutor_id = request.form.get('assigned_tutor_id')
-            
-            if assigned_tutor_id == '':
-                student.assigned_tutor_id = None
-            else:
-                student.assigned_tutor_id = int(assigned_tutor_id)
-                
             student.subjects = request.form['subjects']
+            
+            # Get selected tutors and their pay rates
+            selected_tutors = request.form.getlist('selected_tutors')
+            tutor_pay_rates = {}
+            for tutor_id in selected_tutors:
+                pay_rate = request.form.get(f'pay_rate_{tutor_id}')
+                if pay_rate:
+                    tutor_pay_rates[int(tutor_id)] = int(pay_rate)
+            
+            # Remove existing tutor links
+            StudentTutorLink.query.filter_by(student_id=student.id).delete()
+            
+            # Create new tutor links
+            for tutor_id, pay_rate in tutor_pay_rates.items():
+                link = StudentTutorLink(
+                    student_id=student.id,
+                    tutor_id=tutor_id,
+                    pay_per_class=pay_rate
+                )
+                db.session.add(link)
             
             db.session.commit()
             flash('Student updated successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_students'))
         except Exception as e:
             logger.error(f"Error updating student: {e}")
             flash('Error updating student. Please try again.', 'error')
     
     tutors = Tutor.query.all()
-    return render_template('edit_student.html', student=student, tutors=tutors)
+    # Get current tutor assignments
+    current_links = {link.tutor_id: link.pay_per_class for link in student.tutor_links}
+    return render_template('edit_student.html', student=student, tutors=tutors, current_links=current_links)
 
 @app.route('/delete_student/<int:student_id>')
 @admin_required
@@ -197,6 +363,36 @@ def delete_student(student_id):
     return redirect(url_for('admin_dashboard'))
 
 # Tutor Management Routes
+@app.route('/generate_tutor_credentials', methods=['POST'])
+@admin_required
+def generate_tutor_credentials():
+    from datetime import datetime
+    name = request.form['name']
+    dob = request.form['date_of_birth']
+    mobile = request.form['mobile_number']
+    
+    # Parse DOB
+    dob_date = datetime.strptime(dob, '%Y-%m-%d').date()
+    
+    # Generate username: first name + day + month of DOB
+    first_name = name.split()[0].lower()
+    username = f"{first_name}{dob_date.day:02d}{dob_date.month:02d}"
+    
+    # Check if username exists and modify if needed
+    counter = 1
+    original_username = username
+    while Tutor.query.filter_by(username=username).first():
+        username = f"{original_username}{counter}"
+        counter += 1
+    
+    # Generate password: mobile number + year of birth
+    password = f"{mobile}{dob_date.year}"
+    
+    return jsonify({
+        'username': username,
+        'password': password
+    })
+
 @app.route('/add_tutor', methods=['GET', 'POST'])
 @admin_required
 def add_tutor():
@@ -204,7 +400,9 @@ def add_tutor():
         try:
             name = request.form['name']
             class_group = request.form['class_group']
-            per_class_pay = int(request.form['per_class_pay'])
+            date_of_birth = datetime.strptime(request.form['date_of_birth'], '%Y-%m-%d').date()
+            mobile_number = request.form['mobile_number']
+            payment_details = request.form.get('payment_details', '')
             username = request.form['username']
             password = request.form['password']
             
@@ -217,7 +415,9 @@ def add_tutor():
             tutor = Tutor(
                 name=name,
                 class_group=class_group,
-                per_class_pay=per_class_pay,
+                date_of_birth=date_of_birth,
+                mobile_number=mobile_number,
+                payment_details=payment_details,
                 username=username
             )
             tutor.set_password(password)
@@ -225,7 +425,7 @@ def add_tutor():
             db.session.add(tutor)
             db.session.commit()
             flash('Tutor added successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_tutors'))
         except Exception as e:
             logger.error(f"Error adding tutor: {e}")
             flash('Error adding tutor. Please try again.', 'error')
@@ -259,7 +459,7 @@ def edit_tutor(tutor_id):
             
             db.session.commit()
             flash('Tutor updated successfully!', 'success')
-            return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('admin_tutors'))
         except Exception as e:
             logger.error(f"Error updating tutor: {e}")
             flash('Error updating tutor. Please try again.', 'error')
@@ -298,7 +498,7 @@ def tutor_login():
             session['tutor_id'] = tutor.id
             session['tutor_name'] = tutor.name
             flash(f'Welcome, {tutor.name}!', 'success')
-            return redirect(url_for('tutor_submit'))
+            return redirect(url_for('tutor_dashboard'))
         else:
             flash('Invalid username or password.', 'error')
     
@@ -311,6 +511,71 @@ def tutor_logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('tutor_login'))
 
+@app.route('/tutor_dashboard')
+def tutor_dashboard():
+    if 'tutor_id' not in session:
+        flash('Please log in to access this page.', 'error')
+        return redirect(url_for('tutor_login'))
+    
+    from datetime import datetime, timedelta
+    
+    tutor_id = session['tutor_id']
+    tutor = Tutor.query.get_or_404(tutor_id)
+    
+    # Get filter parameters
+    filter_period = request.args.get('filter_period', 'week')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Set date range based on filter
+    today = datetime.now().date()
+    if filter_period == 'day':
+        start_date = end_date = today
+    elif filter_period == 'week':
+        start_date = today - timedelta(days=7)
+        end_date = today
+    elif filter_period == 'month':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif filter_period == 'custom' and start_date and end_date:
+        start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+    else:
+        start_date = today - timedelta(days=7)
+        end_date = today
+    
+    # Get attendance records with filters
+    attendance_query = Attendance.query.filter(
+        Attendance.tutor_id == tutor_id,
+        Attendance.date.between(start_date, end_date)
+    ).order_by(Attendance.created_at.desc())
+    
+    recent_attendance = attendance_query.limit(10).all()
+    
+    # Get assigned students through links
+    assigned_students = db.session.query(Student).join(StudentTutorLink).filter(
+        StudentTutorLink.tutor_id == tutor_id
+    ).all()
+    
+    # Calculate student performance averages
+    student_performance = db.session.query(
+        Student.name,
+        func.avg(Attendance.rating).label('avg_rating'),
+        func.count(Attendance.id).label('class_count')
+    ).join(Attendance).filter(
+        Attendance.tutor_id == tutor_id,
+        Attendance.date.between(start_date, end_date)
+    ).group_by(Student.id, Student.name).all()
+    
+    return render_template('tutor_dashboard.html', 
+                         tutor=tutor,
+                         assigned_students=assigned_students,
+                         recent_attendance=recent_attendance,
+                         student_performance=student_performance,
+                         filter_period=filter_period,
+                         start_date=start_date,
+                         end_date=end_date)
+
 @app.route('/submit', methods=['GET', 'POST'])
 def tutor_submit():
     if 'tutor_id' not in session:
@@ -319,13 +584,20 @@ def tutor_submit():
     
     tutor_id = session['tutor_id']
     tutor = Tutor.query.get_or_404(tutor_id)
-    assigned_students = Student.query.filter_by(assigned_tutor_id=tutor_id).all()
+    
+    # Get assigned students through links
+    assigned_students = db.session.query(Student).join(StudentTutorLink).filter(
+        StudentTutorLink.tutor_id == tutor_id
+    ).all()
     
     if request.method == 'POST':
         try:
             student_id = int(request.form['student_id'])
             subject = request.form['subject']
             attendance_date = datetime.strptime(request.form['date'], '%Y-%m-%d').date()
+            start_time = datetime.strptime(request.form['start_time'], '%H:%M').time()
+            end_time = datetime.strptime(request.form['end_time'], '%H:%M').time()
+            rating = int(request.form['rating'])
             remarks = request.form.get('remarks', '')
             
             attendance = Attendance(
@@ -333,13 +605,16 @@ def tutor_submit():
                 student_id=student_id,
                 subject=subject,
                 date=attendance_date,
+                start_time=start_time,
+                end_time=end_time,
+                rating=rating,
                 remarks=remarks
             )
             
             db.session.add(attendance)
             db.session.commit()
             flash('Attendance submitted successfully!', 'success')
-            return redirect(url_for('tutor_submit'))
+            return redirect(url_for('tutor_dashboard'))
         except Exception as e:
             logger.error(f"Error submitting attendance: {e}")
             flash('Error submitting attendance. Please try again.', 'error')
@@ -485,10 +760,18 @@ def view_attendance():
     return render_template('view_attendance.html', attendance_records=attendance_records)
 
 @app.route('/delete_attendance/<int:attendance_id>')
-@admin_required
 def delete_attendance(attendance_id):
+    # Check if user is admin or the tutor who created this attendance
+    attendance = Attendance.query.get_or_404(attendance_id)
+    
+    is_admin = 'admin_id' in session
+    is_tutor = 'tutor_id' in session and session['tutor_id'] == attendance.tutor_id
+    
+    if not (is_admin or is_tutor):
+        flash('You do not have permission to delete this attendance record.', 'error')
+        return redirect(url_for('tutor_login'))
+    
     try:
-        attendance = Attendance.query.get_or_404(attendance_id)
         db.session.delete(attendance)
         db.session.commit()
         flash('Attendance record deleted successfully!', 'success')
@@ -496,7 +779,10 @@ def delete_attendance(attendance_id):
         logger.error(f"Error deleting attendance: {e}")
         flash('Error deleting attendance record. Please try again.', 'error')
     
-    return redirect(url_for('view_attendance'))
+    if is_admin:
+        return redirect(url_for('view_attendance'))
+    else:
+        return redirect(url_for('tutor_dashboard'))
 
 @app.route('/delete_all_attendance/<int:tutor_id>')
 @admin_required

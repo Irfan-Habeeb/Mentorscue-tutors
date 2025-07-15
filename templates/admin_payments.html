@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Payments & Dues - MentorsCue{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="page-title">
+            <i class="fas fa-money-bill-wave me-2"></i>Payments & Dues
+        </h1>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {{ 'active' if tab == 'students' else '' }}" href="{{ url_for('admin_payments', tab='students') }}">
+                            <i class="fas fa-users me-2"></i>Students' Dues
+                        </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <a class="nav-link {{ 'active' if tab == 'tutors' else '' }}" href="{{ url_for('admin_payments', tab='tutors') }}">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>Tutors' Salary
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                {% if tab == 'students' %}
+                <!-- Students Dues Tab -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Parent Name</th>
+                                <th>Total Classes</th>
+                                <th>Total Due</th>
+                                <th>Last Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in students %}
+                            {% set total_classes = student.get_total_classes() %}
+                            {% set total_due = student.get_total_fee_due() %}
+                            {% set status_class = {
+                                'pending': 'bg-light text-dark',
+                                'paid': 'bg-success text-white',
+                                'partial': 'bg-info text-white',
+                                'overdue': 'bg-danger text-white'
+                            }[student.payment_status] %}
+                            <tr class="{{ status_class }}">
+                                <td>{{ student.name }}</td>
+                                <td>{{ student.parent_name }}</td>
+                                <td>{{ total_classes }}</td>
+                                <td>₹{{ total_due }}</td>
+                                <td>{{ student.last_payment_date.strftime('%d/%m/%Y') if student.last_payment_date else 'Never' }}</td>
+                                <td>
+                                    <span class="badge {{ status_class }}">{{ student.payment_status.title() }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="updatePaymentStatus('student', {{ student.id }}, '{{ student.payment_status }}')">
+                                        <i class="fas fa-edit"></i> Update
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <!-- Tutors Salary Tab -->
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Tutor Name</th>
+                                <th>Total Classes</th>
+                                <th>Total Earnings</th>
+                                <th>Last Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tutor in tutors %}
+                            {% set total_classes = tutor.get_total_classes() %}
+                            {% set total_earnings = tutor.get_total_earnings() %}
+                            {% set status_class = {
+                                'pending': 'bg-light text-dark',
+                                'paid': 'bg-success text-white',
+                                'partial': 'bg-info text-white',
+                                'overdue': 'bg-danger text-white'
+                            }[tutor.payment_status] %}
+                            <tr class="{{ status_class }}">
+                                <td>{{ tutor.name }}</td>
+                                <td>{{ total_classes }}</td>
+                                <td>₹{{ total_earnings }}</td>
+                                <td>{{ tutor.last_payment_date.strftime('%d/%m/%Y') if tutor.last_payment_date else 'Never' }}</td>
+                                <td>
+                                    <span class="badge {{ status_class }}">{{ tutor.payment_status.title() }}</span>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="updatePaymentStatus('tutor', {{ tutor.id }}, '{{ tutor.payment_status }}')">
+                                        <i class="fas fa-edit"></i> Update
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Status Modal -->
+<div class="modal fade" id="paymentStatusModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('update_payment_status') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Payment Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="entity_type" id="entity_type">
+                    <input type="hidden" name="entity_id" id="entity_id">
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Payment Status</label>
+                        <select class="form-select" name="status" id="status" required>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                            <option value="partial">Partial</option>
+                            <option value="overdue">Overdue</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="payment_date" class="form-label">Payment Date</label>
+                        <input type="date" class="form-control" name="payment_date" id="payment_date">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Status</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function updatePaymentStatus(entityType, entityId, currentStatus) {
+    document.getElementById('entity_type').value = entityType;
+    document.getElementById('entity_id').value = entityId;
+    document.getElementById('status').value = currentStatus;
+    
+    // Show modal
+    const modal = new bootstrap.Modal(document.getElementById('paymentStatusModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

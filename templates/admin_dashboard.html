@@ -11,9 +11,74 @@
     </div>
 </div>
 
+<!-- Navigation Buttons -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_students') }}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-users me-2"></i>View Students
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_tutors') }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-chalkboard-teacher me-2"></i>View Tutors
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('admin_payments') }}" class="btn btn-warning btn-lg w-100">
+                            <i class="fas fa-money-bill-wave me-2"></i>Payments & Dues
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a href="{{ url_for('view_attendance') }}" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-calendar-check me-2"></i>View Attendance
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="filter_period" class="form-label">Filter Period</label>
+                        <select class="form-select" id="filter_period" name="filter_period">
+                            <option value="week" {{ 'selected' if filter_period == 'week' }}>Last Week</option>
+                            <option value="month" {{ 'selected' if filter_period == 'month' }}>This Month</option>
+                            <option value="year" {{ 'selected' if filter_period == 'year' }}>This Year</option>
+                            <option value="custom" {{ 'selected' if filter_period == 'custom' }}>Custom Range</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3" id="start_date_div" style="display: {{ 'block' if filter_period == 'custom' else 'none' }};">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ start_date }}">
+                    </div>
+                    <div class="col-md-3" id="end_date_div" style="display: {{ 'block' if filter_period == 'custom' else 'none' }};">
+                        <label for="end_date" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{{ end_date }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary d-block">Apply Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Statistics Cards -->
 <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="fas fa-users fa-2x text-primary mb-2"></i>
@@ -22,7 +87,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="fas fa-chalkboard-teacher fa-2x text-success mb-2"></i>
@@ -31,7 +96,7 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-3">
         <div class="card stat-card">
             <div class="card-body text-center">
                 <i class="fas fa-calendar-check fa-2x text-info mb-2"></i>
@@ -40,7 +105,163 @@
             </div>
         </div>
     </div>
+    <div class="col-md-3">
+        <div class="card stat-card">
+            <div class="card-body text-center">
+                <i class="fas fa-chart-line fa-2x text-warning mb-2"></i>
+                <h3>₹{{ net_balance }}</h3>
+                <p class="text-muted">Net Balance</p>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Financial Overview -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Balance Sheet</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h4 class="text-success">₹{{ total_revenue }}</h4>
+                            <p class="text-muted">Total Revenue</p>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="text-center">
+                            <h4 class="text-danger">₹{{ total_payout }}</h4>
+                            <p class="text-muted">Total Payout</p>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <h4 class="{{ 'text-success' if net_balance >= 0 else 'text-danger' }}">
+                        ₹{{ net_balance }}
+                    </h4>
+                    <p class="text-muted">Net Balance</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Top 10 Active Students</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th>Student</th>
+                                <th>Classes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in top_students %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ student.name }}</td>
+                                <td><span class="badge bg-primary">{{ student.class_count }}</span></td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No attendance records found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Monthly Earnings Chart -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Monthly Earnings Overview</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="earningsChart" width="400" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filter period change handler
+    document.getElementById('filter_period').addEventListener('change', function() {
+        const isCustom = this.value === 'custom';
+        document.getElementById('start_date_div').style.display = isCustom ? 'block' : 'none';
+        document.getElementById('end_date_div').style.display = isCustom ? 'block' : 'none';
+    });
+
+    // Earnings Chart
+    const ctx = document.getElementById('earningsChart').getContext('2d');
+    const monthlyData = {{ monthly_earnings | tojson }};
+    
+    const labels = monthlyData.map(item => {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return months[item.month - 1] + ' ' + item.year;
+    });
+    
+    const revenueData = monthlyData.map(item => item.revenue);
+    const payoutData = monthlyData.map(item => item.payout);
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Revenue',
+                data: revenueData,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }, {
+                label: 'Payout',
+                data: payoutData,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '₹' + value;
+                        }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': ₹' + context.parsed.y;
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 
 <!-- Students Section -->
 <div class="row mb-4">

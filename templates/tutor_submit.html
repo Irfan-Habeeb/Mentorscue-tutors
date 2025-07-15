@@ -44,6 +44,39 @@
                             <input type="date" class="form-control" id="date" name="date" value="{{ today }}" required>
                         </div>
 
+                        <div class="mb-3">
+                            <label for="start_time" class="form-label">
+                                <i class="fas fa-clock me-1"></i>Start Time *
+                            </label>
+                            <input type="time" class="form-control" id="start_time" name="start_time" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="end_time" class="form-label">
+                                <i class="fas fa-clock me-1"></i>End Time *
+                            </label>
+                            <input type="time" class="form-control" id="end_time" name="end_time" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="rating" class="form-label">
+                                <i class="fas fa-star me-1"></i>Student Performance Rating *
+                            </label>
+                            <select class="form-select" id="rating" name="rating" required>
+                                <option value="">Select rating (1-10)</option>
+                                <option value="1">1 - Poor</option>
+                                <option value="2">2 - Below Average</option>
+                                <option value="3">3 - Below Average</option>
+                                <option value="4">4 - Below Average</option>
+                                <option value="5">5 - Average</option>
+                                <option value="6">6 - Above Average</option>
+                                <option value="7">7 - Good</option>
+                                <option value="8">8 - Very Good</option>
+                                <option value="9">9 - Excellent</option>
+                                <option value="10">10 - Outstanding</option>
+                            </select>
+                        </div>
+
                         <div class="mb-4">
                             <label for="remarks" class="form-label">
                                 <i class="fas fa-comment me-1"></i>Remarks (Optional)
@@ -55,6 +88,9 @@
                             <button type="submit" class="btn btn-success">
                                 <i class="fas fa-check me-1"></i>Submit Attendance
                             </button>
+                            <a href="{{ url_for('tutor_dashboard') }}" class="btn btn-outline-primary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                            </a>
                             <a href="{{ url_for('tutor_logout') }}" class="btn btn-outline-secondary">
                                 <i class="fas fa-sign-out-alt me-1"></i>Logout
                             </a>

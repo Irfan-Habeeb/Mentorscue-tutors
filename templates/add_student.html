@@ -21,6 +21,13 @@
                     </div>
 
                     <div class="mb-3">
+                        <label for="parent_name" class="form-label">
+                            <i class="fas fa-user-tie me-1"></i>Parent Name *
+                        </label>
+                        <input type="text" class="form-control" id="parent_name" name="parent_name" required>
+                    </div>
+
+                    <div class="mb-3">
                         <label for="class_level" class="form-label">
                             <i class="fas fa-graduation-cap me-1"></i>Class *
                         </label>
@@ -31,24 +38,31 @@
                         <label for="per_class_fee" class="form-label">
                             <i class="fas fa-rupee-sign me-1"></i>Per Class Fee *
                         </label>
-                        <select class="form-select" id="per_class_fee" name="per_class_fee" required>
-                            <option value="">Select fee amount</option>
-                            <option value="160">₹160</option>
-                            <option value="180">₹180</option>
-                            <option value="200">₹200</option>
-                        </select>
+                        <input type="number" class="form-control" id="per_class_fee" name="per_class_fee" min="1" placeholder="Enter fee amount" required>
                     </div>
 
                     <div class="mb-3">
-                        <label for="assigned_tutor_id" class="form-label">
-                            <i class="fas fa-chalkboard-teacher me-1"></i>Assigned Tutor
+                        <label for="tutors" class="form-label">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Assign Tutors
                         </label>
-                        <select class="form-select" id="assigned_tutor_id" name="assigned_tutor_id">
-                            <option value="">No tutor assigned</option>
-                            {% for tutor in tutors %}
-                                <option value="{{ tutor.id }}">{{ tutor.name }} ({{ tutor.class_group }})</option>
-                            {% endfor %}
-                        </select>
+                        <div class="card">
+                            <div class="card-body">
+                                {% for tutor in tutors %}
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input tutor-checkbox" type="checkbox" 
+                                           id="tutor_{{ tutor.id }}" name="selected_tutors" value="{{ tutor.id }}">
+                                    <label class="form-check-label" for="tutor_{{ tutor.id }}">
+                                        {{ tutor.name }} ({{ tutor.class_group }})
+                                    </label>
+                                    <div class="mt-2 ms-4" id="pay_rate_div_{{ tutor.id }}" style="display: none;">
+                                        <label for="pay_rate_{{ tutor.id }}" class="form-label">Pay per class for this tutor:</label>
+                                        <input type="number" class="form-control" id="pay_rate_{{ tutor.id }}" 
+                                               name="pay_rate_{{ tutor.id }}" min="1" placeholder="Enter pay rate">
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-4">
@@ -60,7 +74,7 @@
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary me-md-2">
+                        <a href="{{ url_for('admin_students') }}" class="btn btn-outline-secondary me-md-2">
                             <i class="fas fa-arrow-left me-1"></i>Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
@@ -72,4 +86,26 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle tutor checkbox changes
+    document.querySelectorAll('.tutor-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const tutorId = this.value;
+            const payRateDiv = document.getElementById('pay_rate_div_' + tutorId);
+            const payRateInput = document.getElementById('pay_rate_' + tutorId);
+            
+            if (this.checked) {
+                payRateDiv.style.display = 'block';
+                payRateInput.required = true;
+            } else {
+                payRateDiv.style.display = 'none';
+                payRateInput.required = false;
+                payRateInput.value = '';
+            }
+        });
+    });
+});
+</script>
 {% endblock %}
