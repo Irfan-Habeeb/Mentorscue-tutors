@@ -1,0 +1,183 @@
+You are continuing development of my already working Flask app called “MentorsCue” — a tuition management platform.
+
+📌 IMPORTANT:
+- The codebase is already working and fully structured.
+- Your job is to read and understand the current system first.
+- Then, implement all the following changes — completely and **without error**.
+- Do NOT ask me to manually update files. You must handle all required installations, edits, logic adjustments, routes, templates, form handling, model updates, and validations as needed.
+- This project will be deployed on **Render or Railway**, so keep deployment compatibility in mind.
+
+---
+
+🔧 YOUR TASK: Apply all of the following changes, one by one, with full correctness.
+
+### 1️⃣ Remove Fixed Pricing, Add Manual Entry
+
+- Remove the fixed dropdowns for student fees and tutor pay scales.
+- In `add_student` and `edit_student` pages:
+  - Allow **manual tuition fee entry**.
+- Tutors can no longer have a fixed pay scale set on their profile.
+- Instead, allow **assigning multiple tutors per student**.
+  - Each assignment includes a **manually entered pay-per-class** for each tutor.
+
+> ⚠️ Tutors must be able to have **different pay rates for different students**.
+
+- Implement this using a new **association table** (e.g., `StudentTutorLink`) in `models.py`.
+
+---
+
+### 2️⃣ Tutor Assignment UI Update
+
+- In `add_student` and `edit_student`:
+  - Add a **multi-select searchable dropdown** for assigning multiple tutors.
+  - Add an input for each selected tutor to enter their **custom pay per class**.
+
+---
+
+### 3️⃣ Tutor Invoices
+
+- Update the tutor invoice page to:
+  - Calculate payouts based on the pay-per-class value from the `StudentTutorLink`.
+  - Group data by student and number of attended classes.
+
+---
+
+### 4️⃣ Admin Dashboard Navigation Update
+
+- Remove student/tutor lists from the dashboard.
+- Add buttons:
+  - View Students → `/admin/students`
+  - View Tutors → `/admin/tutors`
+- Create separate views for those URLs using current list templates.
+- Add a new field in student add/edit forms:
+  - **Parent Name**
+
+---
+
+### 5️⃣ Enhanced Admin Dashboard Summary
+
+- Show:
+  - 📊 Total Students
+  - 👨‍🏫 Total Tutors
+  - 💰 Total Monthly Revenue vs Tutor Payout
+  - 📈 Graph of Monthly Earnings (by month or range)
+  - 🏆 Actively Learning Leaderboard — top 10 students by number of classes
+
+> Filters for leaderboard and graph:
+- Last week (default)
+- Month
+- Year
+- Custom date range
+
+---
+
+### 6️⃣ Tutor Onboarding Improvements
+
+- In tutor add form, add:
+  - Date of Birth (required)
+  - Mobile Number (GPay) (required)
+  - Payment Details (optional textarea)
+
+- Add “Generate Credentials” button that:
+  - Creates a unique username from **first name + day + month of DOB** (e.g., rahul2307)
+  - Generates password from **mobile number + year of birth** (e.g., 98765432102001)
+  - If username already exists, append extra characters automatically
+  - Prevents submission if uniqueness fails — show warning
+
+- Display:
+  - Generated username (copy icon)
+  - Generated password (copy icon + eye toggle)
+
+> Tutors use these credentials to log in to their dashboard.
+
+---
+
+### 7️⃣ Tutor Dashboard Redesign
+
+- Do not show attendance form directly after login.
+- Instead, show a dashboard with:
+  - Button to open attendance form
+  - Tutor's profile details (editable except pay scale)
+  - Filters to view their classes by:
+    - Day
+    - Week
+    - Month
+  - Show their **last 10 attendance entries**, with:
+    - Delete button
+    - Attendance time (see next section)
+
+---
+
+### 8️⃣ Attendance Form Enhancements
+
+- Add a **Start Time** and **End Time** field.
+- These should:
+  - Be saved in the attendance entry
+  - Be shown in tutor dashboard (but not editable)
+
+- Add a **rating field** (1–10 scale) to rate student performance per class
+  - Store this rating with each attendance record
+
+---
+
+### 9️⃣ Student Performance in Tutor Dashboard
+
+- Show average rating per student
+- Display performance grouped by:
+  - Week
+  - Month
+
+---
+
+### 🔟 Balance Sheet in Admin Dashboard
+
+- Add a section showing balance overview:
+  - Revenue (student fees)
+  - Payouts (tutor salary)
+  - Net Balance (auto-computed)
+
+- Filters:
+  - Weekly
+  - Monthly
+  - Yearly
+  - Custom date range
+
+---
+
+### 1️⃣1️⃣ Dues & Salary Tracking Section
+
+- Add new section in admin dashboard: **“Payments & Dues”**
+  - Two tabs/pages: Students and Tutors
+
+#### Students' Dues:
+
+- Show all students with transparent background color:
+  - White: newly added, no payment yet
+  - Green: recently paid (before next attendance)
+  - Yellow: paid earlier, but attended more classes
+  - Red: overdue for 2+ months
+  - Blue: partial payment
+
+- Add:
+  - “Last Payment Date” column
+  - Filters and sort by status or amount
+  - Bulk action support
+  - Manual override in student profile to assign status
+
+#### Tutors' Salary:
+
+- Apply same logic to tutor salary page using attendance data and payment info
+- Allow manually marking salary as paid, partial, or overdue
+
+---
+
+🎯 FINAL NOTES:
+- Ensure no existing functionality breaks
+- Follow current design patterns used in the app
+- All new templates must match existing styles (layout, form structure)
+- Prepare the app to run correctly on **Render or Railway**
+- Add database migration steps if necessary
+
+⚠️ Do not leave placeholders.
+⚠️ Do not ask for manual user intervention.
+⚠️ Perform full implementation for each task listed above.
