@@ -56,17 +56,17 @@ def admin_logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('admin_login'))
 
+
 @app.route('/admin')
 @admin_required
 def admin_dashboard():
     from datetime import datetime, timedelta
     from sqlalchemy import func, extract
-    
     # Get filter parameters
     filter_period = request.args.get('filter_period', 'week')
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
-    
+
     # Set date range based on filter
     today = datetime.now().date()
     if filter_period == 'week':
@@ -84,32 +84,36 @@ def admin_dashboard():
     else:
         start_date = today - timedelta(days=7)
         end_date = today
-    
-    # Basic statistics
+
     total_students = Student.query.count()
     total_tutors = Tutor.query.count()
     total_attendance = Attendance.query.count()
-    
-    # Financial calculations
-    total_revenue = db.session.query(
-        func.sum(Student.per_class_fee * 
-                func.count(Attendance.id))
-    ).select_from(Student).join(Attendance).filter(
-        Attendance.date.between(start_date, end_date)
-    ).scalar() or 0
-    
+
+    # ✅ Revenue: fix broken SQL by calculating in Python
+    student_class_counts = (
+        db.session.query(
+            Student.id,
+            Student.per_class_fee,
+            func.count(Attendance.id)
+        )
+        .join(Attendance)
+        .filter(Attendance.date.between(start_date, end_date))
+        .group_by(Student.id, Student.per_class_fee)
+        .all()
+    )
+    total_revenue = sum(fee * count for _, fee, count in student_class_counts)
+
     total_payout = db.session.query(
         func.sum(StudentTutorLink.pay_per_class)
-    ).select_from(StudentTutorLink).join(Attendance, 
-        (StudentTutorLink.student_id == Attendance.student_id) & 
+    ).select_from(StudentTutorLink).join(Attendance,
+        (StudentTutorLink.student_id == Attendance.student_id) &
         (StudentTutorLink.tutor_id == Attendance.tutor_id)
     ).filter(
         Attendance.date.between(start_date, end_date)
     ).scalar() or 0
-    
+
     net_balance = total_revenue - total_payout
-    
-    # Top 10 students by class count (leaderboard)
+
     top_students = db.session.query(
         Student.name,
         func.count(Attendance.id).label('class_count')
@@ -118,15 +122,14 @@ def admin_dashboard():
     ).group_by(Student.id, Student.name).order_by(
         func.count(Attendance.id).desc()
     ).limit(10).all()
-    
-    # Monthly earnings data for chart
+
     monthly_earnings = db.session.query(
         extract('month', Attendance.date).label('month'),
         extract('year', Attendance.date).label('year'),
         func.sum(Student.per_class_fee).label('revenue'),
         func.sum(StudentTutorLink.pay_per_class).label('payout')
-    ).select_from(Attendance).join(Student).join(StudentTutorLink, 
-        (StudentTutorLink.student_id == Attendance.student_id) & 
+    ).select_from(Attendance).join(Student).join(StudentTutorLink,
+        (StudentTutorLink.student_id == Attendance.student_id) &
         (StudentTutorLink.tutor_id == Attendance.tutor_id)
     ).filter(
         Attendance.date >= (today - timedelta(days=365))
@@ -134,19 +137,21 @@ def admin_dashboard():
         extract('month', Attendance.date),
         extract('year', Attendance.date)
     ).order_by('year', 'month').all()
-    
-    return render_template('admin_dashboard.html', 
-                         total_students=total_students,
-                         total_tutors=total_tutors,
-                         total_attendance=total_attendance,
-                         total_revenue=total_revenue,
-                         total_payout=total_payout,
-                         net_balance=net_balance,
-                         top_students=top_students,
-                         monthly_earnings=monthly_earnings,
-                         filter_period=filter_period,
-                         start_date=start_date,
-                         end_date=end_date)
+
+    return render_template('admin_dashboard.html',
+        total_students=total_students,
+        total_tutors=total_tutors,
+        total_attendance=total_attendance,
+        total_revenue=total_revenue,
+        total_payout=total_payout,
+        net_balance=net_balance,
+        top_students=top_students,
+        monthly_earnings=monthly_earnings,
+        filter_period=filter_period,
+        start_date=start_date,
+        end_date=end_date
+    )
+
 
 # Separate student and tutor views
 @app.route('/admin/students')

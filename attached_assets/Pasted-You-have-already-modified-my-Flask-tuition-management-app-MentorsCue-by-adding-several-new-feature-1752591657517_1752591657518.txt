@@ -1,0 +1,64 @@
+You have already modified my Flask tuition management app (MentorsCue) by adding several new features, routes, and UI components. Now I’m getting **Internal Server Errors** when accessing `/admin`, caused by undefined or improperly handled template variables like `students`, `tutors`, `page_num`, etc.
+
+Most recent traceback (example):
+jinja2.exceptions.UndefinedError: 'tutors' is undefined
+— this occurs on `/admin` page load.
+
+Here’s what I need from you now:
+
+---
+
+🔧 **Fix Scope:**
+
+1. ✅ Review **all previous changes you made** (especially new features like:
+   - tutor pay-per-class assignments
+   - multi-tutor support
+   - student/tutor dues UI
+   - admin dashboard summaries, leaderboard, earnings filter
+   - balance sheets, attendance reports
+   - ratings
+   - navigation to `/admin/students`, `/admin/tutors`
+   )
+
+2. 🧠 Analyze the **entire codebase contextually**, and cross-check each of these:
+   - Are all variables passed correctly in `render_template(...)`?
+   - Are all templates using only defined and relevant objects?
+   - Remove or rewrite any leftover or broken template blocks that reference undefined objects
+
+3. 🛠 Fix all broken Jinja template blocks across:
+   - `admin_dashboard.html`
+   - `base.html` if needed
+   - Any partials used inside the admin pages
+   - Related views like `admin_students.html`, `admin_tutors.html` if you created them
+
+4. 📦 Fix or recreate the following if missing:
+   - `/admin/students` route and page
+   - `/admin/tutors` route and page
+   - Ensure pagination only exists where it’s supported
+   - Replace broken `students.items`, `tutors.items`, or `iter_pages()` with working logic or remove entirely from `/admin`
+
+5. 🔁 Refactor any sections that were left half-done or broken:
+   - Orphan `{% endfor %}`, `{% endif %}`
+   - Pagination blocks that no longer receive paginated data
+   - Graph preview or filters that rely on missing data
+
+6. 🧪 Make sure `/admin` now works perfectly without any error, and displays:
+   - total students, tutors
+   - revenue, payout, net balance
+   - filters for earnings
+   - leaderboard
+   - working nav buttons to students and tutors sections
+
+7. ⚠️ Most importantly: **don’t leave any broken references** in HTML or Jinja blocks. If something is no longer passed from `routes.py`, remove it or safely default it.
+
+---
+
+📌 Output Instructions:
+
+- Tell me which files you modified (with clear file names)
+- For each fix, explain what was wrong and what was changed
+- Provide a final confirmation that `/admin` and other admin pages render without error
+
+This is a **fully deployed Flask app**, so do not leave anything half-done or relying on placeholder code that breaks Jinja rendering.
+
+Work thoroughly. Don't skip validation. ✅
