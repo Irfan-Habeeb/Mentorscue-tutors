@@ -31,16 +31,15 @@
                         <input
                             type="date"
                             class="form-control"
-                            id="dob"
-                            name="dob"
+                            id="date_of_birth"
+                            name="date_of_birth"
                             required
                         />
                     </div>
 
                     <div class="mb-3">
                         <label for="mobile_number" class="form-label">
-                            <i class="fas fa-phone me-1"></i>Mobile Number
-                            (GPay) *
+                            <i class="fas fa-phone me-1"></i>Mobile Number *
                         </label>
                         <input
                             type="tel"
@@ -53,14 +52,14 @@
 
                     <div class="mb-3">
                         <label for="class_group" class="form-label">
-                            <i class="fas fa-users me-1"></i>Class Group *
+                            <i class="fas fa-users me-1"></i>Class *
                         </label>
                         <input
                             type="text"
                             class="form-control"
                             id="class_group"
                             name="class_group"
-                            placeholder="e.g., 8-10, 10-12"
+                            placeholder="e.g., 1, 2, 10"
                             required
                         />
                     </div>
@@ -165,7 +164,7 @@
             .value.trim()
             .split(" ")[0]
             .toLowerCase();
-        const dob = document.getElementById("dob").value;
+        const dob = document.getElementById("date_of_birth").value;
         const mobile = document.getElementById("mobile_number").value.trim();
         if (!name || !dob || !mobile) {
             alert("Please fill Name, DOB and Mobile Number first.");
