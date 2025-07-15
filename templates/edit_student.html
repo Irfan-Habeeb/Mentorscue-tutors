@@ -1,144 +1,185 @@
-{% extends "base.html" %} {% block title %}Edit Student - MentorsCue{% endblock
-%} {% block content %}
+{% extends "base.html" %}
+
+{% block title %}Edit Student - MentorsCue{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="page-title">
+            <i class="fas fa-edit me-2"></i>Edit Student
+        </h1>
+    </div>
+</div>
+
 <div class="row justify-content-center">
-    <div class="col-md-10 col-lg-8">
-        <div class="card shadow">
-            <div class="card-header">
-                <h3 class="mb-0">
-                    <i class="fas fa-edit me-2"></i>Edit Student
-                </h3>
-            </div>
+    <div class="col-lg-8">
+        <div class="card">
             <div class="card-body">
-                <form method="POST">
-                    <div class="mb-3">
-                        <label for="name" class="form-label">
-                            <i class="fas fa-user me-1"></i>Student Name *
-                        </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="name"
-                            name="name"
-                            value="{{ student.name }}"
-                            required
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="parent_name" class="form-label">
-                            <i class="fas fa-user-friends me-1"></i>Parent Name
-                        </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="parent_name"
-                            name="parent_name"
-                            value="{{ student.parent_name or '' }}"
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="class_level" class="form-label">
-                            <i class="fas fa-graduation-cap me-1"></i>Class *
-                        </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="class_level"
-                            name="class_level"
-                            value="{{ student.class_level }}"
-                            required
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="per_class_fee" class="form-label">
-                            <i class="fas fa-rupee-sign me-1"></i>Tuition Fee
-                            (per class) *
-                        </label>
-                        <input
-                            type="number"
-                            class="form-control"
-                            id="per_class_fee"
-                            name="per_class_fee"
-                            value="{{ student.per_class_fee }}"
-                            required
-                        />
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="subjects" class="form-label">
-                            <i class="fas fa-book me-1"></i>Subjects *
-                        </label>
-                        <input
-                            type="text"
-                            class="form-control"
-                            id="subjects"
-                            name="subjects"
-                            value="{{ student.subjects }}"
-                            required
-                        />
-                        <div class="form-text">
-                            Enter subjects separated by commas
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label class="form-label"
-                            ><i class="fas fa-chalkboard-teacher me-1"></i
-                            >Assign Tutors *</label
-                        >
-                        <div class="form-text mb-2">
-                            Select one or more tutors and enter their pay per
-                            class
-                        </div>
-                        {% for tutor in tutors %}
-                        <div class="input-group mb-2">
-                            <div class="input-group-text">
-                                <input
-                                    class="form-check-input mt-0"
-                                    type="checkbox"
-                                    name="tutor_ids"
-                                    value="{{ tutor.id }}"
-                                    {%
-                                    if
-                                    tutor.id
-                                    in
-                                    assigned_tutor_ids
-                                    %}checked{%
-                                    endif
-                                    %}
-                                />
+                <form method="POST" id="editStudentForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Student Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required>
                             </div>
-                            <span class="input-group-text w-50"
-                                >{{ tutor.name }} ({{ tutor.class_group
-                                }})</span
-                            >
-                            <input
-                                type="number"
-                                class="form-control"
-                                name="tutor_pay_{{ tutor.id }}"
-                                placeholder="Pay per class"
-                                value="{{ tutor_pays.get(tutor.id, '') }}"
-                            />
                         </div>
-                        {% endfor %}
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="parent_name" class="form-label">Parent Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="parent_name" name="parent_name" value="{{ student.parent_name }}" required>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a
-                            href="{{ url_for('admin_dashboard') }}"
-                            class="btn btn-outline-secondary me-md-2"
-                        >
-                            <i class="fas fa-arrow-left me-1"></i>Cancel
-                        </a>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Update Student
-                        </button>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="class_level" class="form-label">Class Level <span class="text-danger">*</span></label>
+                                <select class="form-select" id="class_level" name="class_level" required>
+                                    <option value="">Select Class</option>
+                                    <option value="Class 8" {{ 'selected' if student.class_level == 'Class 8' }}>Class 8</option>
+                                    <option value="Class 9" {{ 'selected' if student.class_level == 'Class 9' }}>Class 9</option>
+                                    <option value="Class 10" {{ 'selected' if student.class_level == 'Class 10' }}>Class 10</option>
+                                    <option value="Class 11" {{ 'selected' if student.class_level == 'Class 11' }}>Class 11</option>
+                                    <option value="Class 12" {{ 'selected' if student.class_level == 'Class 12' }}>Class 12</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="per_class_fee" class="form-label">Fee per Class (₹) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="per_class_fee" name="per_class_fee" 
+                                       value="{{ student.per_class_fee }}" min="100" max="1000" required>
+                                <div class="form-text">Enter the fee amount per class session</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="subjects" class="form-label">Subjects <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="subjects" name="subjects" 
+                               value="{{ student.subjects }}" placeholder="e.g., Mathematics, Physics, Chemistry" required>
+                        <div class="form-text">Enter subjects separated by commas</div>
+                    </div>
+
+                    <!-- Searchable Tutor Selection -->
+                    <div class="mb-3">
+                        <label class="form-label">Assign Tutors</label>
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" class="form-control" id="tutorSearch" placeholder="Search tutors by name...">
+                                </div>
+                            </div>
+                            <div class="card-body" style="max-height: 300px; overflow-y: auto;">
+                                <div id="tutorList">
+                                    {% for tutor in tutors %}
+                                    <div class="tutor-item border rounded p-3 mb-2" data-tutor-name="{{ tutor.name.lower() }}">
+                                        <div class="form-check">
+                                            <input class="form-check-input tutor-checkbox" type="checkbox" 
+                                                   name="selected_tutors" value="{{ tutor.id }}" 
+                                                   id="tutor_{{ tutor.id }}" onchange="togglePayRate({{ tutor.id }})"
+                                                   {{ 'checked' if tutor.id in current_links }}>
+                                            <label class="form-check-label" for="tutor_{{ tutor.id }}">
+                                                <strong>{{ tutor.name }}</strong>
+                                                <br><small class="text-muted">Class Group: {{ tutor.class_group }}</small>
+                                            </label>
+                                        </div>
+                                        <div class="pay-rate-section mt-2" id="payRate_{{ tutor.id }}" 
+                                             style="display: {{ 'block' if tutor.id in current_links else 'none' }};">
+                                            <label for="pay_rate_{{ tutor.id }}" class="form-label">Pay per Class (₹)</label>
+                                            <input type="number" class="form-control" name="pay_rate_{{ tutor.id }}" 
+                                                   id="pay_rate_{{ tutor.id }}" min="50" max="500" 
+                                                   value="{{ current_links.get(tutor.id, '') }}" placeholder="Enter pay rate">
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                {% if not tutors %}
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-users fa-2x mb-2"></i>
+                                    <p>No tutors available. Please add tutors first.</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-save me-1"></i>Update Student
+                            </button>
+                            <a href="{{ url_for('admin_students') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Cancel
+                            </a>
+                        </div>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Tutor search functionality
+document.getElementById('tutorSearch').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const tutorItems = document.querySelectorAll('.tutor-item');
+    
+    tutorItems.forEach(function(item) {
+        const tutorName = item.getAttribute('data-tutor-name');
+        if (tutorName.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// Toggle pay rate input
+function togglePayRate(tutorId) {
+    const checkbox = document.getElementById('tutor_' + tutorId);
+    const payRateSection = document.getElementById('payRate_' + tutorId);
+    const payRateInput = document.getElementById('pay_rate_' + tutorId);
+    
+    if (checkbox.checked) {
+        payRateSection.style.display = 'block';
+        payRateInput.required = true;
+    } else {
+        payRateSection.style.display = 'none';
+        payRateInput.required = false;
+        payRateInput.value = '';
+    }
+}
+
+// Form validation
+document.getElementById('editStudentForm').addEventListener('submit', function(e) {
+    const selectedTutors = document.querySelectorAll('.tutor-checkbox:checked');
+    
+    // Check if at least one tutor is selected
+    if (selectedTutors.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one tutor for this student.');
+        return;
+    }
+    
+    // Check if all selected tutors have pay rates
+    let missingPayRates = false;
+    selectedTutors.forEach(function(checkbox) {
+        const tutorId = checkbox.value;
+        const payRateInput = document.getElementById('pay_rate_' + tutorId);
+        if (!payRateInput.value) {
+            missingPayRates = true;
+        }
+    });
+    
+    if (missingPayRates) {
+        e.preventDefault();
+        alert('Please enter pay rates for all selected tutors.');
+        return;
+    }
+});
+</script>
 {% endblock %}

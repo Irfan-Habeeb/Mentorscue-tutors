@@ -9,10 +9,11 @@ def safe_parse_date(date_str):
 from flask import render_template, request, redirect, url_for, flash, session, make_response, jsonify
 from app import app, db
 from models import Admin, Student, Tutor, Attendance, StudentTutorLink
-from datetime import date
+from datetime import date, datetime, timedelta
 from utils import generate_parent_invoice, generate_tutor_invoice
 import logging
 from functools import wraps
+from sqlalchemy import func, extract
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,8 @@ def admin_dashboard():
 
     net_balance = total_revenue - total_payout
 
-    top_students = db.session.query(
+    # Fix top students query - convert to JSON-serializable format
+    top_student_results = db.session.query(
         Student.name,
         func.count(Attendance.id).label('class_count')
     ).join(Attendance).filter(
@@ -122,8 +124,17 @@ def admin_dashboard():
     ).group_by(Student.id, Student.name).order_by(
         func.count(Attendance.id).desc()
     ).limit(10).all()
+    
+    # Convert to JSON-serializable format
+    top_students = []
+    for row in top_student_results:
+        top_students.append({
+            'name': row.name,
+            'class_count': int(row.class_count)
+        })
 
-    monthly_earnings = db.session.query(
+    # Fix monthly earnings query - convert Row objects to dictionaries
+    monthly_results = db.session.query(
         extract('month', Attendance.date).label('month'),
         extract('year', Attendance.date).label('year'),
         func.sum(Student.per_class_fee).label('revenue'),
@@ -137,6 +148,16 @@ def admin_dashboard():
         extract('month', Attendance.date),
         extract('year', Attendance.date)
     ).order_by('year', 'month').all()
+    
+    # Convert to JSON-serializable format
+    monthly_earnings = []
+    for row in monthly_results:
+        monthly_earnings.append({
+            'month': int(row.month) if row.month else 1,
+            'year': int(row.year) if row.year else datetime.now().year,
+            'revenue': float(row.revenue) if row.revenue else 0,
+            'payout': float(row.payout) if row.payout else 0
+        })
 
     return render_template('admin_dashboard.html',
         total_students=total_students,
@@ -152,74 +173,42 @@ def admin_dashboard():
         end_date=end_date
     )
 
-
-# Separate student and tutor views
-@app.route('/admin/students')
+# Student Management Routes
+@app.route('/admin_students')
 @admin_required
 def admin_students():
-    # Search and filter parameters
-    student_search = request.args.get('student_search', '')
-    student_class_filter = request.args.get('student_class_filter', '')
-    student_tutor_filter = request.args.get('student_tutor_filter', '')
-    
-    # Pagination parameters
-    student_page = request.args.get('student_page', 1, type=int)
-    per_page = 20
-    
-    # Build student query
-    student_query = Student.query
-    if student_search:
-        student_query = student_query.filter(Student.name.contains(student_search))
-    if student_class_filter:
-        student_query = student_query.filter(Student.class_level == student_class_filter)
-    
-    # Get paginated results
-    students = student_query.paginate(page=student_page, per_page=per_page, error_out=False)
-    
-    # Get filter options
-    all_tutors = Tutor.query.all()
-    student_classes = db.session.query(Student.class_level).distinct().all()
-    
-    return render_template('admin_students.html', 
-                         students=students, 
-                         all_tutors=all_tutors,
-                         student_classes=[c[0] for c in student_classes],
-                         student_search=student_search,
-                         student_class_filter=student_class_filter,
-                         student_tutor_filter=student_tutor_filter)
+    students = Student.query.all()
+    return render_template('admin_students.html', students=students)
 
-@app.route('/admin/tutors')
+# Tutor Management Routes  
+@app.route('/admin_tutors')
 @admin_required
 def admin_tutors():
-    # Search and filter parameters
-    tutor_search = request.args.get('tutor_search', '')
-    tutor_class_filter = request.args.get('tutor_class_filter', '')
-    
-    # Pagination parameters
-    tutor_page = request.args.get('tutor_page', 1, type=int)
-    per_page = 20
-    
-    # Build tutor query
-    tutor_query = Tutor.query
-    if tutor_search:
-        tutor_query = tutor_query.filter(Tutor.name.contains(tutor_search))
-    if tutor_class_filter:
-        tutor_query = tutor_query.filter(Tutor.class_group == tutor_class_filter)
-    
-    # Get paginated results
-    tutors = tutor_query.paginate(page=tutor_page, per_page=per_page, error_out=False)
-    
-    # Get filter options
-    tutor_classes = db.session.query(Tutor.class_group).distinct().all()
-    
-    return render_template('admin_tutors.html', 
-                         tutors=tutors,
-                         tutor_classes=[c[0] for c in tutor_classes],
-                         tutor_search=tutor_search,
-                         tutor_class_filter=tutor_class_filter)
+    tutors = Tutor.query.all()
+    return render_template('admin_tutors.html', tutors=tutors)
 
-# Payment tracking routes
-@app.route('/admin/payments')
+# Payment Management Routes
+@app.route('/admin_payments')
+@admin_required  
+def admin_payments():
+    students = Student.query.all()
+    tutors = Tutor.query.all()
+    return render_template('admin_payments.html', students=students, tutors=tutors)
+
+# Detail profile routes
+@app.route('/student_profile/<int:student_id>')
+@admin_required  
+def student_profile(student_id):
+    student = Student.query.get_or_404(student_id)
+    attendance_records = Attendance.query.filter_by(student_id=student_id).order_by(Attendance.date.desc()).limit(20).all()
+    return render_template('student_profile.html', student=student, attendance_records=attendance_records)
+
+@app.route('/tutor_profile/<int:tutor_id>')
+@admin_required
+def tutor_profile(tutor_id):
+    tutor = Tutor.query.get_or_404(tutor_id)
+    attendance_records = Attendance.query.filter_by(tutor_id=tutor_id).order_by(Attendance.date.desc()).limit(20).all()
+    return render_template('tutor_profile.html', tutor=tutor, attendance_records=attendance_records)
 @admin_required
 def admin_payments():
     tab = request.args.get('tab', 'students')
@@ -365,7 +354,7 @@ def delete_student(student_id):
         logger.error(f"Error deleting student: {e}")
         flash('Error deleting student. Please try again.', 'error')
     
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_students'))
 
 # Tutor Management Routes
 @app.route('/generate_tutor_credentials', methods=['POST'])
@@ -476,8 +465,8 @@ def edit_tutor(tutor_id):
 def delete_tutor(tutor_id):
     try:
         tutor = Tutor.query.get_or_404(tutor_id)
-        # Update students to remove this tutor assignment
-        Student.query.filter_by(assigned_tutor_id=tutor_id).update({'assigned_tutor_id': None})
+        # Delete tutor links with students
+        StudentTutorLink.query.filter_by(tutor_id=tutor_id).delete()
         # Delete associated attendance records
         Attendance.query.filter_by(tutor_id=tutor_id).delete()
         db.session.delete(tutor)
@@ -487,7 +476,7 @@ def delete_tutor(tutor_id):
         logger.error(f"Error deleting tutor: {e}")
         flash('Error deleting tutor. Please try again.', 'error')
     
-    return redirect(url_for('admin_dashboard'))
+    return redirect(url_for('admin_tutors'))
 
 # Tutor Login and Attendance Routes
 @app.route('/login', methods=['GET', 'POST'])

@@ -1,0 +1,58 @@
+🔧 FIX ALL ISSUES & DELIVER COMPLETE FUNCTIONAL SYSTEM
+
+You must now:
+━━━━━━━━━━━━━━━━━━
+✅ Fix every single error currently in my Flask-based tuition management app.
+
+🚨 This includes:
+- `/admin` failing due to: `TypeError: Object of type Row is not JSON serializable`
+- Missing imports like `func`, `extract`
+- Internal server errors after submitting forms or loading dashboards
+- Missing or broken route endpoints like `'delete_student'`
+- Jinja errors due to undefined context variables
+- ChartJS JSON issues
+- All other unknown bugs caused after implementing the features I asked you earlier.
+
+💡 Features I requested earlier (you must support and fix all of them):
+━━━━━━━━━━━━━━━━━━
+1. Searchable tutor selection (multi-select dropdown) **only** in `add_student` and `edit_student` forms.
+2. Parent name field for students
+3. Manual per-class fee input for students
+4. Tutor pay rate defined **per student**
+5. Tutor credentials: auto-generate from name + DOB + mobile number
+6. Buttons to copy username/password & show/hide password
+7. Leaderboard of top students
+8. Financial overview with earnings & payouts
+9. Monthly earnings chart on admin dashboard
+
+🧠 What you must do:
+━━━━━━━━━━━━━━━━━━
+🔹 Update all backend code (`routes.py`, `models.py`, etc.)
+🔹 Update all relevant templates:
+   - `admin_dashboard.html`
+   - `admin_students.html`
+   - `admin_tutors.html`
+   - `add_tutor.html`
+   - `edit_tutor.html`
+   - `add_student.html` ✅ with searchable tutor select
+   - `edit_student.html` ✅ with searchable tutor select
+   - `tutor_dashboard.html`
+🔹 Ensure every new feature works properly.
+🔹 Ensure all existing features still work.
+🔹 Ensure database models, routes, and forms align with the updated frontend.
+
+📦 Final Deliverables:
+━━━━━━━━━━━━━━━━━━
+1. All updated, working HTML templates
+2. Updated `routes.py`, `models.py`, and any other Python files
+3. If needed, a `fix.py` script that I can run in shell to patch files
+4. Everything should work with **no need for me to debug anything**
+
+📌 RULES:
+━━━━━━━━━━━━━━━━━━
+- DO NOT leave placeholder code or comments
+- DO NOT output partial or broken code
+- TEST YOUR OUTPUT internally
+- I will not manually fix anything — YOU are responsible for delivering a bug-free system.
+
+Deliver a clean, stable, and working setup. This is your complete responsibility now.

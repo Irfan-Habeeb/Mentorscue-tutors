@@ -47,10 +47,16 @@ def generate_parent_invoice(student, subject_filter='', month_filter='', start_d
     story.append(Spacer(1, 12))
 
     story.append(Paragraph(f"<b>Student Name:</b> {student.name}", styles['Normal']))
+    story.append(Paragraph(f"<b>Parent Name:</b> {student.parent_name}", styles['Normal']))
     story.append(Paragraph(f"<b>Class:</b> {student.class_level}", styles['Normal']))
     story.append(Paragraph(f"<b>Per Class Fee:</b> Rs.{student.per_class_fee}", styles['Normal']))
-    if student.assigned_tutor:
-        story.append(Paragraph(f"<b>Assigned Tutor:</b> {student.assigned_tutor.name}", styles['Normal']))
+    
+    # Display assigned tutors (multi-tutor support)
+    tutor_names = []
+    for link in student.tutor_links:
+        tutor_names.append(f"{link.tutor.name} (₹{link.pay_per_class} per class)")
+    if tutor_names:
+        story.append(Paragraph(f"<b>Assigned Tutors:</b> {', '.join(tutor_names)}", styles['Normal']))
     story.append(Spacer(1, 12))
 
     # Query attendance
@@ -140,7 +146,7 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
 
     story.append(Paragraph(f"<b>Tutor Name:</b> {tutor.name}", styles['Normal']))
     story.append(Paragraph(f"<b>Class Group:</b> {tutor.class_group}", styles['Normal']))
-    story.append(Paragraph(f"<b>Per Class Pay:</b> Rs.{tutor.per_class_pay}", styles['Normal']))
+    story.append(Paragraph(f"<b>Mobile Number:</b> {tutor.mobile_number}", styles['Normal']))
     story.append(Spacer(1, 12))
 
     attendance_query = Attendance.query.filter_by(tutor_id=tutor.id)
@@ -160,15 +166,24 @@ def generate_tutor_invoice(tutor, subject_filter='', month_filter='', start_date
     records = attendance_query.all()
 
     if records:
+        from models import StudentTutorLink
+        
         data = [['Date', 'Student', 'Subject', 'Pay', 'Remarks']]
         total_salary = 0
         for r in records:
-            total_salary += tutor.per_class_pay
+            # Get the specific pay rate for this tutor-student pair
+            link = StudentTutorLink.query.filter_by(
+                student_id=r.student_id,
+                tutor_id=tutor.id
+            ).first()
+            pay_for_class = link.pay_per_class if link else 100  # Default pay if no link found
+            total_salary += pay_for_class
+            
             data.append([
                 r.date.strftime('%Y-%m-%d'),
                 r.student.name,
                 r.subject,
-                f'Rs.{tutor.per_class_pay}',
+                f'Rs.{pay_for_class}',
                 r.remarks or '-'
             ])
         data.append(['', '', '', f'TOTAL: Rs.{total_salary}', ''])
