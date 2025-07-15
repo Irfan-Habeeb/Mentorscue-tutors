@@ -1,7 +1,4 @@
-{% extends "base.html" %}
-
-{% block title %}Add Tutor - MentorsCue{% endblock %}
-
+{% extends "base.html" %} {% block title %}Add Tutor - MentorsCue{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
@@ -17,47 +14,138 @@
                         <label for="name" class="form-label">
                             <i class="fas fa-user me-1"></i>Tutor Name *
                         </label>
-                        <input type="text" class="form-control" id="name" name="name" required>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="name"
+                            name="name"
+                            required
+                        />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="dob" class="form-label">
+                            <i class="fas fa-calendar-alt me-1"></i>Date of
+                            Birth *
+                        </label>
+                        <input
+                            type="date"
+                            class="form-control"
+                            id="dob"
+                            name="dob"
+                            required
+                        />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="mobile_number" class="form-label">
+                            <i class="fas fa-phone me-1"></i>Mobile Number
+                            (GPay) *
+                        </label>
+                        <input
+                            type="tel"
+                            class="form-control"
+                            id="mobile_number"
+                            name="mobile_number"
+                            required
+                        />
                     </div>
 
                     <div class="mb-3">
                         <label for="class_group" class="form-label">
                             <i class="fas fa-users me-1"></i>Class Group *
                         </label>
-                        <input type="text" class="form-control" id="class_group" name="class_group" placeholder="e.g., 8-10, 10-12" required>
-                        <div class="form-text">Classes this tutor can teach</div>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="class_group"
+                            name="class_group"
+                            placeholder="e.g., 8-10, 10-12"
+                            required
+                        />
                     </div>
 
                     <div class="mb-3">
-                        <label for="per_class_pay" class="form-label">
-                            <i class="fas fa-rupee-sign me-1"></i>Per Class Pay *
+                        <label for="payment_details" class="form-label">
+                            <i class="fas fa-credit-card me-1"></i>Payment
+                            Details (UPI / Bank)
                         </label>
-                        <select class="form-select" id="per_class_pay" name="per_class_pay" required>
-                            <option value="">Select pay amount</option>
-                            <option value="100">₹100</option>
-                            <option value="120">₹120</option>
-                            <option value="140">₹140</option>
-                        </select>
+                        <textarea
+                            class="form-control"
+                            id="payment_details"
+                            name="payment_details"
+                            rows="2"
+                        ></textarea>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3 d-flex align-items-center">
+                        <button
+                            type="button"
+                            class="btn btn-outline-info btn-sm me-2"
+                            onclick="generateCredentials()"
+                        >
+                            <i class="fas fa-magic me-1"></i>Generate
+                            Credentials
+                        </button>
+                        <small class="text-muted"
+                            >Auto-generate username and password</small
+                        >
+                    </div>
+
+                    <div class="mb-3 position-relative">
                         <label for="username" class="form-label">
                             <i class="fas fa-user-circle me-1"></i>Username *
                         </label>
-                        <input type="text" class="form-control" id="username" name="username" required>
-                        <div class="form-text">Used for tutor login</div>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="username"
+                            name="username"
+                            required
+                            readonly
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-light position-absolute end-0 top-0 mt-1 me-2"
+                            onclick="copyToClipboard('username')"
+                        >
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-4 position-relative">
                         <label for="password" class="form-label">
                             <i class="fas fa-lock me-1"></i>Password *
                         </label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                        <div class="form-text">Secure password for tutor login</div>
+                        <input
+                            type="password"
+                            class="form-control"
+                            id="password"
+                            name="password"
+                            required
+                            readonly
+                        />
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-light position-absolute end-0 top-0 mt-1 me-2"
+                            onclick="togglePassword('password')"
+                        >
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-light position-absolute end-0 top-0 mt-1 me-5"
+                            onclick="copyToClipboard('password')"
+                        >
+                            <i class="fas fa-copy"></i>
+                        </button>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary me-md-2">
+                        <a
+                            href="{{ url_for('admin_dashboard') }}"
+                            class="btn btn-outline-secondary me-md-2"
+                        >
                             <i class="fas fa-arrow-left me-1"></i>Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
@@ -69,4 +157,38 @@
         </div>
     </div>
 </div>
+
+<script>
+    function generateCredentials() {
+        const name = document
+            .getElementById("name")
+            .value.trim()
+            .split(" ")[0]
+            .toLowerCase();
+        const dob = document.getElementById("dob").value;
+        const mobile = document.getElementById("mobile_number").value.trim();
+        if (!name || !dob || !mobile) {
+            alert("Please fill Name, DOB and Mobile Number first.");
+            return;
+        }
+        const [year, month, day] = dob.split("-");
+        let username = name + day + month;
+        let password = mobile + year;
+
+        document.getElementById("username").value = username;
+        document.getElementById("password").value = password;
+    }
+
+    function copyToClipboard(fieldId) {
+        const field = document.getElementById(fieldId);
+        field.select();
+        field.setSelectionRange(0, 99999);
+        document.execCommand("copy");
+    }
+
+    function togglePassword(fieldId) {
+        const field = document.getElementById(fieldId);
+        field.type = field.type === "password" ? "text" : "password";
+    }
+</script>
 {% endblock %}

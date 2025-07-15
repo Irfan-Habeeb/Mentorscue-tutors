@@ -1,49 +1,27 @@
-# fix_orphan_endfor.py
+# fix_button_spacing.py
 
 file_path = "templates/admin_dashboard.html"
 
 
-def clean_orphan_endfor():
+def patch_buttons():
     try:
         with open(file_path, "r") as f:
             lines = f.readlines()
 
-        stack = []
-        cleaned = []
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-            if stripped.startswith("{% for "):
-                stack.append("for")
-                cleaned.append(line)
-            elif stripped.startswith("{% if"):
-                stack.append("if")
-                cleaned.append(line)
-            elif stripped.startswith("{% else %}") or stripped.startswith(
-                    "{% elif"):
-                cleaned.append(line)
-            elif stripped.startswith("{% endfor %}"):
-                if "for" in stack:
-                    stack.remove("for")
-                    cleaned.append(line)
-                else:
-                    print(f"ðŸ§¹ Removed orphan endfor at line {i+1}")
-            elif stripped.startswith("{% endif %}"):
-                if "if" in stack:
-                    stack.remove("if")
-                    cleaned.append(line)
-                else:
-                    print(f"ðŸ§¹ Removed orphan endif at line {i+1}")
-            else:
-                cleaned.append(line)
+        patched_lines = []
+        for line in lines:
+            if 'class="btn ' in line and 'w-100' in line and 'mb-3' not in line:
+                line = line.replace('w-100', 'w-100 mb-3')
+            patched_lines.append(line)
 
         with open(file_path, "w") as f:
-            f.writelines(cleaned)
+            f.writelines(patched_lines)
 
-        print("âœ… Orphan {% endfor %} and {% endif %} cleanup completed.")
+        print("âœ… Button spacing patched with 'mb-3' successfully.")
 
     except Exception as e:
-        print(f"âŒ Error: {e}")
+        print(f"âŒ Error patching file: {e}")
 
 
 if __name__ == "__main__":
-    clean_orphan_endfor()
+    patch_buttons()
