@@ -1,10 +1,7 @@
-{% extends "base.html" %}
-
-{% block title %}Edit Student - MentorsCue{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Edit Student - MentorsCue{% endblock
+%} {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
+    <div class="col-md-10 col-lg-8">
         <div class="card shadow">
             <div class="card-header">
                 <h3 class="mb-0">
@@ -17,51 +14,122 @@
                         <label for="name" class="form-label">
                             <i class="fas fa-user me-1"></i>Student Name *
                         </label>
-                        <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="name"
+                            name="name"
+                            value="{{ student.name }}"
+                            required
+                        />
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="parent_name" class="form-label">
+                            <i class="fas fa-user-friends me-1"></i>Parent Name
+                        </label>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="parent_name"
+                            name="parent_name"
+                            value="{{ student.parent_name or '' }}"
+                        />
                     </div>
 
                     <div class="mb-3">
                         <label for="class_level" class="form-label">
                             <i class="fas fa-graduation-cap me-1"></i>Class *
                         </label>
-                        <input type="text" class="form-control" id="class_level" name="class_level" value="{{ student.class_level }}" required>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="class_level"
+                            name="class_level"
+                            value="{{ student.class_level }}"
+                            required
+                        />
                     </div>
 
                     <div class="mb-3">
                         <label for="per_class_fee" class="form-label">
-                            <i class="fas fa-rupee-sign me-1"></i>Per Class Fee *
+                            <i class="fas fa-rupee-sign me-1"></i>Tuition Fee
+                            (per class) *
                         </label>
-                        <select class="form-select" id="per_class_fee" name="per_class_fee" required>
-                            <option value="160" {{ 'selected' if student.per_class_fee == 160 }}>₹160</option>
-                            <option value="180" {{ 'selected' if student.per_class_fee == 180 }}>₹180</option>
-                            <option value="200" {{ 'selected' if student.per_class_fee == 200 }}>₹200</option>
-                        </select>
+                        <input
+                            type="number"
+                            class="form-control"
+                            id="per_class_fee"
+                            name="per_class_fee"
+                            value="{{ student.per_class_fee }}"
+                            required
+                        />
                     </div>
 
                     <div class="mb-3">
-                        <label for="assigned_tutor_id" class="form-label">
-                            <i class="fas fa-chalkboard-teacher me-1"></i>Assigned Tutor
-                        </label>
-                        <select class="form-select" id="assigned_tutor_id" name="assigned_tutor_id">
-                            <option value="">No tutor assigned</option>
-                            {% for tutor in tutors %}
-                                <option value="{{ tutor.id }}" {{ 'selected' if student.assigned_tutor_id == tutor.id }}>
-                                    {{ tutor.name }} ({{ tutor.class_group }})
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
                         <label for="subjects" class="form-label">
                             <i class="fas fa-book me-1"></i>Subjects *
                         </label>
-                        <input type="text" class="form-control" id="subjects" name="subjects" value="{{ student.subjects }}" required>
-                        <div class="form-text">Enter subjects separated by commas</div>
+                        <input
+                            type="text"
+                            class="form-control"
+                            id="subjects"
+                            name="subjects"
+                            value="{{ student.subjects }}"
+                            required
+                        />
+                        <div class="form-text">
+                            Enter subjects separated by commas
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label"
+                            ><i class="fas fa-chalkboard-teacher me-1"></i
+                            >Assign Tutors *</label
+                        >
+                        <div class="form-text mb-2">
+                            Select one or more tutors and enter their pay per
+                            class
+                        </div>
+                        {% for tutor in tutors %}
+                        <div class="input-group mb-2">
+                            <div class="input-group-text">
+                                <input
+                                    class="form-check-input mt-0"
+                                    type="checkbox"
+                                    name="tutor_ids"
+                                    value="{{ tutor.id }}"
+                                    {%
+                                    if
+                                    tutor.id
+                                    in
+                                    assigned_tutor_ids
+                                    %}checked{%
+                                    endif
+                                    %}
+                                />
+                            </div>
+                            <span class="input-group-text w-50"
+                                >{{ tutor.name }} ({{ tutor.class_group
+                                }})</span
+                            >
+                            <input
+                                type="number"
+                                class="form-control"
+                                name="tutor_pay_{{ tutor.id }}"
+                                placeholder="Pay per class"
+                                value="{{ tutor_pays.get(tutor.id, '') }}"
+                            />
+                        </div>
+                        {% endfor %}
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary me-md-2">
+                        <a
+                            href="{{ url_for('admin_dashboard') }}"
+                            class="btn btn-outline-secondary me-md-2"
+                        >
                             <i class="fas fa-arrow-left me-1"></i>Cancel
                         </a>
                         <button type="submit" class="btn btn-primary">
